@@ -3,21 +3,22 @@ package middleware
 import (
 	"bytes"
 	"fmt"
-	"github.com/labstack/echo/v5"
-	"github.com/stretchr/testify/assert"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/datumforge/echox"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateExtractors(t *testing.T) {
 	var testCases = []struct {
 		name              string
 		givenRequest      func() *http.Request
-		givenPathParams   echo.PathParams
+		givenPathParams   echox.PathParams
 		whenLoopups       string
 		expectValues      []string
 		expectSource      ExtractorSource
@@ -28,7 +29,7 @@ func TestCreateExtractors(t *testing.T) {
 			name: "ok, header",
 			givenRequest: func() *http.Request {
 				req := httptest.NewRequest(http.MethodGet, "/", nil)
-				req.Header.Set(echo.HeaderAuthorization, "Bearer token")
+				req.Header.Set(echox.HeaderAuthorization, "Bearer token")
 				return req
 			},
 			whenLoopups:  "header:Authorization:Bearer ",
@@ -42,7 +43,7 @@ func TestCreateExtractors(t *testing.T) {
 				f.Set("name", "Jon Snow")
 
 				req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
-				req.Header.Add(echo.HeaderContentType, echo.MIMEApplicationForm)
+				req.Header.Add(echox.HeaderContentType, echox.MIMEApplicationForm)
 				return req
 			},
 			whenLoopups:  "form:name",
@@ -53,7 +54,7 @@ func TestCreateExtractors(t *testing.T) {
 			name: "ok, cookie",
 			givenRequest: func() *http.Request {
 				req := httptest.NewRequest(http.MethodGet, "/", nil)
-				req.Header.Set(echo.HeaderCookie, "_csrf=token")
+				req.Header.Set(echox.HeaderCookie, "_csrf=token")
 				return req
 			},
 			whenLoopups:  "cookie:_csrf",
@@ -62,7 +63,7 @@ func TestCreateExtractors(t *testing.T) {
 		},
 		{
 			name: "ok, param",
-			givenPathParams: echo.PathParams{
+			givenPathParams: echox.PathParams{
 				{Name: "id", Value: "123"},
 			},
 			whenLoopups:  "param:id",
@@ -88,14 +89,14 @@ func TestCreateExtractors(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			if tc.givenRequest != nil {
 				req = tc.givenRequest()
 			}
 			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec).(echo.ServableContext)
+			c := e.NewContext(req, rec).(echox.ServableContext)
 			if tc.givenPathParams != nil {
 				c.SetRawPathParams(&tc.givenPathParams)
 			}
@@ -123,7 +124,7 @@ func TestCreateExtractors(t *testing.T) {
 
 func TestValuesFromHeader(t *testing.T) {
 	exampleRequest := func(req *http.Request) {
-		req.Header.Set(echo.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
+		req.Header.Set(echox.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
 	}
 
 	var testCases = []struct {
@@ -137,58 +138,58 @@ func TestValuesFromHeader(t *testing.T) {
 		{
 			name:            "ok, single value",
 			givenRequest:    exampleRequest,
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "basic ",
 			expectValues:    []string{"dXNlcjpwYXNzd29yZA=="},
 		},
 		{
 			name:            "ok, single value, case insensitive",
 			givenRequest:    exampleRequest,
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "Basic ",
 			expectValues:    []string{"dXNlcjpwYXNzd29yZA=="},
 		},
 		{
 			name: "ok, multiple value",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
-				req.Header.Add(echo.HeaderAuthorization, "basic dGVzdDp0ZXN0")
+				req.Header.Set(echox.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
+				req.Header.Add(echox.HeaderAuthorization, "basic dGVzdDp0ZXN0")
 			},
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "basic ",
 			expectValues:    []string{"dXNlcjpwYXNzd29yZA==", "dGVzdDp0ZXN0"},
 		},
 		{
 			name:            "ok, empty prefix",
 			givenRequest:    exampleRequest,
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "",
 			expectValues:    []string{"basic dXNlcjpwYXNzd29yZA=="},
 		},
 		{
 			name: "nok, no matching due different prefix",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
-				req.Header.Add(echo.HeaderAuthorization, "basic dGVzdDp0ZXN0")
+				req.Header.Set(echox.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
+				req.Header.Add(echox.HeaderAuthorization, "basic dGVzdDp0ZXN0")
 			},
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "Bearer ",
 			expectError:     errHeaderExtractorValueInvalid.Error(),
 		},
 		{
 			name: "nok, no matching due different prefix",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
-				req.Header.Add(echo.HeaderAuthorization, "basic dGVzdDp0ZXN0")
+				req.Header.Set(echox.HeaderAuthorization, "basic dXNlcjpwYXNzd29yZA==")
+				req.Header.Add(echox.HeaderAuthorization, "basic dGVzdDp0ZXN0")
 			},
-			whenName:        echo.HeaderWWWAuthenticate,
+			whenName:        echox.HeaderWWWAuthenticate,
 			whenValuePrefix: "",
 			expectError:     errHeaderExtractorValueMissing.Error(),
 		},
 		{
 			name:            "nok, no headers",
 			givenRequest:    nil,
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "basic ",
 			expectError:     errHeaderExtractorValueMissing.Error(),
 		},
@@ -196,10 +197,10 @@ func TestValuesFromHeader(t *testing.T) {
 			name: "ok, prefix, cut values over extractorLimit",
 			givenRequest: func(req *http.Request) {
 				for i := 1; i <= 25; i++ {
-					req.Header.Add(echo.HeaderAuthorization, fmt.Sprintf("basic %v", i))
+					req.Header.Add(echox.HeaderAuthorization, fmt.Sprintf("basic %v", i))
 				}
 			},
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "basic ",
 			expectValues: []string{
 				"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
@@ -210,10 +211,10 @@ func TestValuesFromHeader(t *testing.T) {
 			name: "ok, cut values over extractorLimit",
 			givenRequest: func(req *http.Request) {
 				for i := 1; i <= 25; i++ {
-					req.Header.Add(echo.HeaderAuthorization, fmt.Sprintf("%v", i))
+					req.Header.Add(echox.HeaderAuthorization, fmt.Sprintf("%v", i))
 				}
 			},
-			whenName:        echo.HeaderAuthorization,
+			whenName:        echox.HeaderAuthorization,
 			whenValuePrefix: "",
 			expectValues: []string{
 				"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
@@ -224,7 +225,7 @@ func TestValuesFromHeader(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			if tc.givenRequest != nil {
@@ -289,7 +290,7 @@ func TestValuesFromQuery(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			req := httptest.NewRequest(http.MethodGet, "/"+tc.givenQueryPart, nil)
 			rec := httptest.NewRecorder()
@@ -310,19 +311,19 @@ func TestValuesFromQuery(t *testing.T) {
 }
 
 func TestValuesFromParam(t *testing.T) {
-	examplePathParams := echo.PathParams{
+	examplePathParams := echox.PathParams{
 		{Name: "id", Value: "123"},
 		{Name: "gid", Value: "456"},
 		{Name: "gid", Value: "789"},
 	}
-	examplePathParams20 := make(echo.PathParams, 0)
+	examplePathParams20 := make(echox.PathParams, 0)
 	for i := 1; i < 25; i++ {
-		examplePathParams20 = append(examplePathParams20, echo.PathParam{Name: "id", Value: fmt.Sprintf("%v", i)})
+		examplePathParams20 = append(examplePathParams20, echox.PathParam{Name: "id", Value: fmt.Sprintf("%v", i)})
 	}
 
 	var testCases = []struct {
 		name            string
-		givenPathParams echo.PathParams
+		givenPathParams echox.PathParams
 		whenName        string
 		expectValues    []string
 		expectError     string
@@ -366,11 +367,11 @@ func TestValuesFromParam(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec).(echo.ServableContext)
+			c := e.NewContext(req, rec).(echox.ServableContext)
 			if tc.givenPathParams != nil {
 				c.SetRawPathParams(&tc.givenPathParams)
 			}
@@ -391,7 +392,7 @@ func TestValuesFromParam(t *testing.T) {
 
 func TestValuesFromCookie(t *testing.T) {
 	exampleRequest := func(req *http.Request) {
-		req.Header.Set(echo.HeaderCookie, "_csrf=token")
+		req.Header.Set(echox.HeaderCookie, "_csrf=token")
 	}
 
 	var testCases = []struct {
@@ -410,8 +411,8 @@ func TestValuesFromCookie(t *testing.T) {
 		{
 			name: "ok, multiple value",
 			givenRequest: func(req *http.Request) {
-				req.Header.Add(echo.HeaderCookie, "_csrf=token")
-				req.Header.Add(echo.HeaderCookie, "_csrf=token2")
+				req.Header.Add(echox.HeaderCookie, "_csrf=token")
+				req.Header.Add(echox.HeaderCookie, "_csrf=token2")
 			},
 			whenName:     "_csrf",
 			expectValues: []string{"token", "token2"},
@@ -434,7 +435,7 @@ func TestValuesFromCookie(t *testing.T) {
 			name: "ok, cut values over extractorLimit",
 			givenRequest: func(req *http.Request) {
 				for i := 1; i < 25; i++ {
-					req.Header.Add(echo.HeaderCookie, fmt.Sprintf("_csrf=%v", i))
+					req.Header.Add(echox.HeaderCookie, fmt.Sprintf("_csrf=%v", i))
 				}
 			},
 			whenName: "_csrf",
@@ -447,7 +448,7 @@ func TestValuesFromCookie(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			if tc.givenRequest != nil {
@@ -480,7 +481,7 @@ func TestValuesFromForm(t *testing.T) {
 		}
 
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(f.Encode()))
-		req.Header.Add(echo.HeaderContentType, echo.MIMEApplicationForm)
+		req.Header.Add(echox.HeaderContentType, echox.MIMEApplicationForm)
 
 		return req
 	}
@@ -510,7 +511,7 @@ func TestValuesFromForm(t *testing.T) {
 		w.Close()
 
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(b.String()))
-		req.Header.Add(echo.HeaderContentType, w.FormDataContentType())
+		req.Header.Add(echox.HeaderContentType, w.FormDataContentType())
 
 		return req
 	}
@@ -581,7 +582,7 @@ func TestValuesFromForm(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			req := tc.givenRequest
 			rec := httptest.NewRecorder()

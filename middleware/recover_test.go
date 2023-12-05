@@ -6,18 +6,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRecover(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	buf := new(bytes.Buffer)
 	e.Logger = &testLogger{output: buf}
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := Recover()(func(c echo.Context) error {
+	h := Recover()(func(c echox.Context) error {
 		panic("test")
 	})
 	err := h(c)
@@ -27,18 +27,18 @@ func TestRecover(t *testing.T) {
 }
 
 func TestRecover_skipper(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
 	config := RecoverConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c echox.Context) bool {
 			return true
 		},
 	}
-	h := RecoverWithConfig(config)(func(c echo.Context) error {
+	h := RecoverWithConfig(config)(func(c echox.Context) error {
 		panic("testPANIC")
 	})
 
@@ -52,11 +52,11 @@ func TestRecover_skipper(t *testing.T) {
 }
 
 func TestRecoverErrAbortHandler(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := Recover()(func(c echo.Context) error {
+	h := Recover()(func(c echox.Context) error {
 		panic(http.ErrAbortHandler)
 	})
 	defer func() {
@@ -108,14 +108,14 @@ func TestRecoverWithConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
 			config := tc.whenConfig
-			h := RecoverWithConfig(config)(func(c echo.Context) error {
+			h := RecoverWithConfig(config)(func(c echox.Context) error {
 				if tc.givenNoPanic {
 					return nil
 				}

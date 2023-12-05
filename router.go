@@ -10,7 +10,7 @@ import (
 // Router is interface for routing request contexts to registered routes.
 //
 // Contract between Echo/Context instance and the router:
-//   - all routes must be added through methods on echo.Echo instance.
+//   - all routes must be added through methods on echox.Echo instance.
 //     Reason: Echo instance uses RouteInfo.Params() length to allocate slice for paths parameters (see `Echo.contextPathParamAllocSize`).
 //   - Router must populate Context during Router.Route call with:
 //   - RoutableContext.SetPath
@@ -73,7 +73,7 @@ type Routable interface {
 
 	// ForGroup recreates routable with added group prefix and group middlewares it is grouped to.
 	//
-	// Is necessary for Echo.Group to be able to add/register Routable with Router and having group prefix and group
+	// Is necessary for echox.Group to be able to add/register Routable with Router and having group prefix and group
 	// middlewares included in actually registered Route.
 	ForGroup(pathPrefix string, middlewares []MiddlewareFunc) Routable
 }

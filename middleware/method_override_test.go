@@ -6,21 +6,21 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMethodOverride(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	m := MethodOverride()
-	h := func(c echo.Context) error {
+	h := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
 	// Override with http header
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	rec := httptest.NewRecorder()
-	req.Header.Set(echo.HeaderXHTTPMethodOverride, http.MethodDelete)
+	req.Header.Set(echox.HeaderXHTTPMethodOverride, http.MethodDelete)
 	c := e.NewContext(req, rec)
 
 	err := m(h)(c)
@@ -31,8 +31,8 @@ func TestMethodOverride(t *testing.T) {
 }
 
 func TestMethodOverride_formParam(t *testing.T) {
-	e := echo.New()
-	h := func(c echo.Context) error {
+	e := echox.New()
+	h := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
@@ -41,7 +41,7 @@ func TestMethodOverride_formParam(t *testing.T) {
 	assert.NoError(t, err)
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("_method="+http.MethodDelete)))
 	rec := httptest.NewRecorder()
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.Header.Set(echox.HeaderContentType, echox.MIMEApplicationForm)
 	c := e.NewContext(req, rec)
 
 	err = m(h)(c)
@@ -51,8 +51,8 @@ func TestMethodOverride_formParam(t *testing.T) {
 }
 
 func TestMethodOverride_queryParam(t *testing.T) {
-	e := echo.New()
-	h := func(c echo.Context) error {
+	e := echox.New()
+	h := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
@@ -70,15 +70,15 @@ func TestMethodOverride_queryParam(t *testing.T) {
 }
 
 func TestMethodOverride_ignoreGet(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	m := MethodOverride()
-	h := func(c echo.Context) error {
+	h := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
 	// Ignore `GET`
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderXHTTPMethodOverride, http.MethodDelete)
+	req.Header.Set(echox.HeaderXHTTPMethodOverride, http.MethodDelete)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 

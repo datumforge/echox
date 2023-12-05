@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"golang.org/x/time/rate"
 )
 
@@ -19,41 +19,41 @@ type RateLimiterStore interface {
 type RateLimiterConfig struct {
 	Skipper    Skipper
 	BeforeFunc BeforeFunc
-	// IdentifierExtractor uses echo.Context to extract the identifier for a visitor
+	// IdentifierExtractor uses echox.Context to extract the identifier for a visitor
 	IdentifierExtractor Extractor
 	// Store defines a store for the rate limiter
 	Store RateLimiterStore
 	// ErrorHandler provides a handler to be called when IdentifierExtractor returns an error
-	ErrorHandler func(c echo.Context, err error) error
+	ErrorHandler func(c echox.Context, err error) error
 	// DenyHandler provides a handler to be called when RateLimiter denies access
-	DenyHandler func(c echo.Context, identifier string, err error) error
+	DenyHandler func(c echox.Context, identifier string, err error) error
 }
 
-// Extractor is used to extract data from echo.Context
-type Extractor func(c echo.Context) (string, error)
+// Extractor is used to extract data from echox.Context
+type Extractor func(c echox.Context) (string, error)
 
 // ErrRateLimitExceeded denotes an error raised when rate limit is exceeded
-var ErrRateLimitExceeded = echo.NewHTTPError(http.StatusTooManyRequests, "rate limit exceeded")
+var ErrRateLimitExceeded = echox.NewHTTPError(http.StatusTooManyRequests, "rate limit exceeded")
 
 // ErrExtractorError denotes an error raised when extractor function is unsuccessful
-var ErrExtractorError = echo.NewHTTPError(http.StatusForbidden, "error while extracting identifier")
+var ErrExtractorError = echox.NewHTTPError(http.StatusForbidden, "error while extracting identifier")
 
 // DefaultRateLimiterConfig defines default values for RateLimiterConfig
 var DefaultRateLimiterConfig = RateLimiterConfig{
 	Skipper: DefaultSkipper,
-	IdentifierExtractor: func(ctx echo.Context) (string, error) {
+	IdentifierExtractor: func(ctx echox.Context) (string, error) {
 		id := ctx.RealIP()
 		return id, nil
 	},
-	ErrorHandler: func(c echo.Context, err error) error {
-		return &echo.HTTPError{
+	ErrorHandler: func(c echox.Context, err error) error {
+		return &echox.HTTPError{
 			Code:     ErrExtractorError.Code,
 			Message:  ErrExtractorError.Message,
 			Internal: err,
 		}
 	},
-	DenyHandler: func(c echo.Context, identifier string, err error) error {
-		return &echo.HTTPError{
+	DenyHandler: func(c echox.Context, identifier string, err error) error {
+		return &echox.HTTPError{
 			Code:     ErrRateLimitExceeded.Code,
 			Message:  ErrRateLimitExceeded.Message,
 			Internal: err,
@@ -64,15 +64,15 @@ var DefaultRateLimiterConfig = RateLimiterConfig{
 /*
 RateLimiter returns a rate limiting middleware
 
-	e := echo.New()
+	e := echox.New()
 
 	limiterStore := middleware.NewRateLimiterMemoryStore(20)
 
-	e.GET("/rate-limited", func(c echo.Context) error {
+	e.GET("/rate-limited", func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}, RateLimiter(limiterStore))
 */
-func RateLimiter(store RateLimiterStore) echo.MiddlewareFunc {
+func RateLimiter(store RateLimiterStore) echox.MiddlewareFunc {
 	config := DefaultRateLimiterConfig
 	config.Store = store
 
@@ -82,35 +82,35 @@ func RateLimiter(store RateLimiterStore) echo.MiddlewareFunc {
 /*
 RateLimiterWithConfig returns a rate limiting middleware
 
-	e := echo.New()
+	e := echox.New()
 
 	config := middleware.RateLimiterConfig{
 		Skipper: DefaultSkipper,
 		Store: middleware.NewRateLimiterMemoryStore(
 			middleware.RateLimiterMemoryStoreConfig{Rate: 10, Burst: 30, ExpiresIn: 3 * time.Minute}
 		)
-		IdentifierExtractor: func(ctx echo.Context) (string, error) {
+		IdentifierExtractor: func(ctx echox.Context) (string, error) {
 			id := ctx.RealIP()
 			return id, nil
 		},
-		ErrorHandler: func(context echo.Context, err error) error {
+		ErrorHandler: func(context echox.Context, err error) error {
 			return context.JSON(http.StatusTooManyRequests, nil)
 		},
-		DenyHandler: func(context echo.Context, identifier string) error {
+		DenyHandler: func(context echox.Context, identifier string) error {
 			return context.JSON(http.StatusForbidden, nil)
 		},
 	}
 
-	e.GET("/rate-limited", func(c echo.Context) error {
+	e.GET("/rate-limited", func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}, middleware.RateLimiterWithConfig(config))
 */
-func RateLimiterWithConfig(config RateLimiterConfig) echo.MiddlewareFunc {
+func RateLimiterWithConfig(config RateLimiterConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts RateLimiterConfig to middleware or returns an error for invalid configuration
-func (config RateLimiterConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config RateLimiterConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultRateLimiterConfig.Skipper
 	}
@@ -126,8 +126,8 @@ func (config RateLimiterConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 	if config.Store == nil {
 		return nil, errors.New("echo rate limiter store configuration must be provided")
 	}
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}

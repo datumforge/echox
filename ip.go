@@ -34,10 +34,10 @@ Let's start from two questions to know the right direction:
 If you put no proxy (e.g.: directory facing to the internet), all you need to (and have to) see is IP address from network layer.
 Any HTTP header is untrustable because the clients have full control what headers to be set.
 
-In this case, use `echo.ExtractIPDirect()`.
+In this case, use `echox.ExtractIPDirect()`.
 
 ```go
-e.IPExtractor = echo.ExtractIPDirect()
+e.IPExtractor = echox.ExtractIPDirect()
 ```
 
 ## Case 2. With proxies using `X-Forwarded-For` header
@@ -70,7 +70,7 @@ In above example, if `b` and `c` are trustable, the IP address of the client is 
 In Echo, use `ExtractIPFromXFFHeader(...TrustOption)`.
 
 ```go
-e.IPExtractor = echo.ExtractIPFromXFFHeader()
+e.IPExtractor = echox.ExtractIPFromXFFHeader()
 ```
 
 By default, it trusts internal IP addresses (loopback, link-local unicast, private-use and unique local address
@@ -81,7 +81,7 @@ To control this behavior, use [`TrustOption`](https://godoc.org/github.com/labst
 E.g.:
 
 ```go
-e.IPExtractor = echo.ExtractIPFromXFFHeader(
+e.IPExtractor = echox.ExtractIPFromXFFHeader(
 	TrustLinkLocal(false),
 	TrustIPRanges(lbIPRange),
 )
@@ -96,7 +96,7 @@ e.IPExtractor = echo.ExtractIPFromXFFHeader(
 If your proxies set this header, use `ExtractIPFromRealIPHeader(...TrustOption)`.
 
 ```go
-e.IPExtractor = echo.ExtractIPFromRealIPHeader()
+e.IPExtractor = echox.ExtractIPFromRealIPHeader()
 ```
 
 Again, it trusts internal IP addresses by default (loopback, link-local unicast, private-use and unique local address

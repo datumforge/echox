@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/valyala/fasttemplate"
 )
 
@@ -61,10 +61,10 @@ type LoggerConfig struct {
 	// CustomTagFunc is function called for `${custom}` tag to output user implemented text by writing it to buf.
 	// Make sure that outputted text creates valid JSON string with other logged tags.
 	// Optional.
-	CustomTagFunc func(c echo.Context, buf *bytes.Buffer) (int, error)
+	CustomTagFunc func(c echox.Context, buf *bytes.Buffer) (int, error)
 
 	// Output is a writer where logs in JSON format are written.
-	// Optional. Default destination `echo.Logger.Infof()`
+	// Optional. Default destination `echox.Logger.Infof()`
 	Output io.Writer
 
 	template *fasttemplate.Template
@@ -82,17 +82,17 @@ var DefaultLoggerConfig = LoggerConfig{
 }
 
 // Logger returns a middleware that logs HTTP requests.
-func Logger() echo.MiddlewareFunc {
+func Logger() echox.MiddlewareFunc {
 	return LoggerWithConfig(DefaultLoggerConfig)
 }
 
 // LoggerWithConfig returns a Logger middleware with config or panics on invalid configuration.
-func LoggerWithConfig(config LoggerConfig) echo.MiddlewareFunc {
+func LoggerWithConfig(config LoggerConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts LoggerConfig to middleware or returns an error for invalid configuration
-func (config LoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	// Defaults
 	if config.Skipper == nil {
 		config.Skipper = DefaultLoggerConfig.Skipper
@@ -108,8 +108,8 @@ func (config LoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		},
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -152,9 +152,9 @@ func (config LoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				case "time_custom":
 					return buf.WriteString(stop.Format(config.CustomTimeFormat))
 				case "id":
-					id := req.Header.Get(echo.HeaderXRequestID)
+					id := req.Header.Get(echox.HeaderXRequestID)
 					if id == "" {
-						id = res.Header().Get(echo.HeaderXRequestID)
+						id = res.Header().Get(echox.HeaderXRequestID)
 					}
 					return buf.WriteString(id)
 				case "remote_ip":
@@ -182,7 +182,7 @@ func (config LoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				case "status":
 					status := res.Status
 					if err != nil {
-						var httpErr *echo.HTTPError
+						var httpErr *echox.HTTPError
 						if errors.As(err, &httpErr) {
 							status = httpErr.Code
 						}
@@ -201,7 +201,7 @@ func (config LoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				case "latency_human":
 					return buf.WriteString(stop.Sub(start).String())
 				case "bytes_in":
-					cl := req.Header.Get(echo.HeaderContentLength)
+					cl := req.Header.Get(echox.HeaderContentLength)
 					if cl == "" {
 						cl = "0"
 					}

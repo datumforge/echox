@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // BodyDumpConfig defines the config for BodyDump middleware.
@@ -22,7 +22,7 @@ type BodyDumpConfig struct {
 }
 
 // BodyDumpHandler receives the request and response payload.
-type BodyDumpHandler func(c echo.Context, reqBody []byte, resBody []byte)
+type BodyDumpHandler func(c echox.Context, reqBody []byte, resBody []byte)
 
 type bodyDumpResponseWriter struct {
 	io.Writer
@@ -33,18 +33,18 @@ type bodyDumpResponseWriter struct {
 //
 // BodyDump middleware captures the request and response payload and calls the
 // registered handler.
-func BodyDump(handler BodyDumpHandler) echo.MiddlewareFunc {
+func BodyDump(handler BodyDumpHandler) echox.MiddlewareFunc {
 	return BodyDumpWithConfig(BodyDumpConfig{Handler: handler})
 }
 
 // BodyDumpWithConfig returns a BodyDump middleware with config.
 // See: `BodyDump()`.
-func BodyDumpWithConfig(config BodyDumpConfig) echo.MiddlewareFunc {
+func BodyDumpWithConfig(config BodyDumpConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts BodyDumpConfig to middleware or returns an error for invalid configuration
-func (config BodyDumpConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config BodyDumpConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Handler == nil {
 		return nil, errors.New("echo body-dump middleware requires a handler function")
 	}
@@ -52,8 +52,8 @@ func (config BodyDumpConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		config.Skipper = DefaultSkipper
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}

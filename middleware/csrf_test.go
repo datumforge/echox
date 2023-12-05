@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +30,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 			givenCSRFCookie: "token",
 			givenMethod:     http.MethodPost,
 			givenHeaderTokens: map[string][]string{
-				echo.HeaderXCSRFToken: {"invalid_token"},
+				echox.HeaderXCSRFToken: {"invalid_token"},
 			},
 			givenFormTokens: map[string][]string{
 				"csrf": {"token"},
@@ -78,31 +78,31 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 			givenCSRFCookie: "token",
 			givenMethod:     http.MethodPost,
 			givenHeaderTokens: map[string][]string{
-				echo.HeaderXCSRFToken: {"token"},
+				echox.HeaderXCSRFToken: {"token"},
 			},
 		},
 		{
 			name:            "ok, token from POST header, second token passes",
-			whenTokenLookup: "header:" + echo.HeaderXCSRFToken,
+			whenTokenLookup: "header:" + echox.HeaderXCSRFToken,
 			givenCSRFCookie: "token",
 			givenMethod:     http.MethodPost,
 			givenHeaderTokens: map[string][]string{
-				echo.HeaderXCSRFToken: {"invalid", "token"},
+				echox.HeaderXCSRFToken: {"invalid", "token"},
 			},
 		},
 		{
 			name:            "nok, invalid token from POST header",
-			whenTokenLookup: "header:" + echo.HeaderXCSRFToken,
+			whenTokenLookup: "header:" + echox.HeaderXCSRFToken,
 			givenCSRFCookie: "token",
 			givenMethod:     http.MethodPost,
 			givenHeaderTokens: map[string][]string{
-				echo.HeaderXCSRFToken: {"invalid_token"},
+				echox.HeaderXCSRFToken: {"invalid_token"},
 			},
 			expectError: "code=403, message=invalid csrf token",
 		},
 		{
 			name:              "nok, missing token from POST header",
-			whenTokenLookup:   "header:" + echo.HeaderXCSRFToken,
+			whenTokenLookup:   "header:" + echox.HeaderXCSRFToken,
 			givenCSRFCookie:   "token",
 			givenMethod:       http.MethodPost,
 			givenHeaderTokens: map[string][]string{},
@@ -156,7 +156,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			q := make(url.Values)
 			for queryParam, values := range tc.givenQueryTokens {
@@ -178,7 +178,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 				req = httptest.NewRequest(http.MethodGet, "/?"+q.Encode(), nil)
 			case http.MethodPost, http.MethodPut:
 				req = httptest.NewRequest(http.MethodPost, "/?"+q.Encode(), strings.NewReader(f.Encode()))
-				req.Header.Add(echo.HeaderContentType, echo.MIMEApplicationForm)
+				req.Header.Add(echox.HeaderContentType, echox.MIMEApplicationForm)
 			}
 
 			for header, values := range tc.givenHeaderTokens {
@@ -188,7 +188,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 			}
 
 			if tc.givenCSRFCookie != "" {
-				req.Header.Set(echo.HeaderCookie, "_csrf="+tc.givenCSRFCookie)
+				req.Header.Set(echox.HeaderCookie, "_csrf="+tc.givenCSRFCookie)
 			}
 
 			rec := httptest.NewRecorder()
@@ -206,7 +206,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			h := csrf(func(c echo.Context) error {
+			h := csrf(func(c echox.Context) error {
 				return c.String(http.StatusOK, "test")
 			})
 
@@ -221,36 +221,36 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 }
 
 func TestCSRF(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	csrf := CSRF()
-	h := csrf(func(c echo.Context) error {
+	h := csrf(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
 	// Generate CSRF token
 	h(c)
-	assert.Contains(t, rec.Header().Get(echo.HeaderSetCookie), "_csrf")
+	assert.Contains(t, rec.Header().Get(echox.HeaderSetCookie), "_csrf")
 
 }
 
 func TestMustCSRFWithConfig(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	csrf := CSRFWithConfig(CSRFConfig{
 		TokenLength: 16,
 	})
-	h := csrf(func(c echo.Context) error {
+	h := csrf(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
 	// Generate CSRF token
 	h(c)
-	assert.Contains(t, rec.Header().Get(echo.HeaderSetCookie), "_csrf")
+	assert.Contains(t, rec.Header().Get(echox.HeaderSetCookie), "_csrf")
 
 	// Without CSRF cookie
 	req = httptest.NewRequest(http.MethodPost, "/", nil)
@@ -262,20 +262,20 @@ func TestMustCSRFWithConfig(t *testing.T) {
 	req = httptest.NewRequest(http.MethodPost, "/", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
-	req.Header.Set(echo.HeaderXCSRFToken, "")
+	req.Header.Set(echox.HeaderXCSRFToken, "")
 	assert.Error(t, h(c))
 
 	// Valid CSRF token
 	token := randomString(16)
-	req.Header.Set(echo.HeaderCookie, "_csrf="+token)
-	req.Header.Set(echo.HeaderXCSRFToken, token)
+	req.Header.Set(echox.HeaderCookie, "_csrf="+token)
+	req.Header.Set(echox.HeaderXCSRFToken, token)
 	if assert.NoError(t, h(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
 
 func TestCSRFSetSameSiteMode(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -284,7 +284,7 @@ func TestCSRFSetSameSiteMode(t *testing.T) {
 		CookieSameSite: http.SameSiteStrictMode,
 	})
 
-	h := csrf(func(c echo.Context) error {
+	h := csrf(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
@@ -294,14 +294,14 @@ func TestCSRFSetSameSiteMode(t *testing.T) {
 }
 
 func TestCSRFWithoutSameSiteMode(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
 	csrf := CSRFWithConfig(CSRFConfig{})
 
-	h := csrf(func(c echo.Context) error {
+	h := csrf(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
@@ -311,7 +311,7 @@ func TestCSRFWithoutSameSiteMode(t *testing.T) {
 }
 
 func TestCSRFWithSameSiteDefaultMode(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -320,7 +320,7 @@ func TestCSRFWithSameSiteDefaultMode(t *testing.T) {
 		CookieSameSite: http.SameSiteDefaultMode,
 	})
 
-	h := csrf(func(c echo.Context) error {
+	h := csrf(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
@@ -330,7 +330,7 @@ func TestCSRFWithSameSiteDefaultMode(t *testing.T) {
 }
 
 func TestCSRFWithSameSiteModeNone(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -340,7 +340,7 @@ func TestCSRFWithSameSiteModeNone(t *testing.T) {
 	}.ToMiddleware()
 	assert.NoError(t, err)
 
-	h := csrf(func(c echo.Context) error {
+	h := csrf(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
@@ -370,18 +370,18 @@ func TestCSRFConfig_skipper(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
 			csrf := CSRFWithConfig(CSRFConfig{
-				Skipper: func(c echo.Context) bool {
+				Skipper: func(c echox.Context) bool {
 					return tc.whenSkip
 				},
 			})
 
-			h := csrf(func(c echo.Context) error {
+			h := csrf(func(c echox.Context) error {
 				return c.String(http.StatusOK, "test")
 			})
 
@@ -395,13 +395,13 @@ func TestCSRFConfig_skipper(t *testing.T) {
 
 func TestCSRFErrorHandling(t *testing.T) {
 	cfg := CSRFConfig{
-		ErrorHandler: func(c echo.Context, err error) error {
-			return echo.NewHTTPError(http.StatusTeapot, "error_handler_executed")
+		ErrorHandler: func(c echox.Context, err error) error {
+			return echox.NewHTTPError(http.StatusTeapot, "error_handler_executed")
 		},
 	}
 
-	e := echo.New()
-	e.POST("/", func(c echo.Context) error {
+	e := echox.New()
+	e.POST("/", func(c echox.Context) error {
 		return c.String(http.StatusNotImplemented, "should not end up here")
 	})
 

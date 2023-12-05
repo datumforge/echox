@@ -19,7 +19,7 @@ import (
 	Example:
   ```go
   var length int64
-  err := echo.QueryParamsBinder(c).Int64("length", &length).BindError()
+  err := echox.QueryParamsBinder(c).Int64("length", &length).BindError()
   ```
 
 	For every supported type there are following methods:

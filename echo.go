@@ -6,20 +6,20 @@ Example:
 	  package main
 
 		import (
-			"github.com/labstack/echo/v5"
-			"github.com/labstack/echo/v5/middleware"
+			"github.com/datumforge/echox"
+			"github.com/datumforge/echox/middleware"
 			"log"
 			"net/http"
 		)
 
 	  // Handler
-	  func hello(c echo.Context) error {
+	  func hello(c echox.Context) error {
 	    return c.String(http.StatusOK, "Hello, World!")
 	  }
 
 	  func main() {
 	    // Echo instance
-	    e := echo.New()
+	    e := echox.New()
 
 	    // Middleware
 	    e.Use(middleware.Logger())
@@ -74,7 +74,7 @@ type Echo struct {
 	// creation moment so we can allocate path parameter values slice with correct size.
 	contextPathParamAllocSize int
 
-	// NewContextFunc allows using custom context implementations, instead of default *echo.context
+	// NewContextFunc allows using custom context implementations, instead of default *echox.context
 	NewContextFunc   func(e *Echo, pathParamAllocSize int) ServableContext
 	Debug            bool
 	HTTPErrorHandler HTTPErrorHandler
@@ -88,7 +88,7 @@ type Echo struct {
 	// Filesystem is file system used by Static and File handlers to access files.
 	// Defaults to os.DirFS(".")
 	//
-	// When dealing with `embed.FS` use `fs := echo.MustSubFS(fs, "rootDirectory") to create sub fs which uses necessary
+	// When dealing with `embed.FS` use `fs := echox.MustSubFS(fs, "rootDirectory") to create sub fs which uses necessary
 	// prefix for directory path. This is necessary as `//go:embed assets/images` embeds files with paths
 	// including `assets/images` as their prefix.
 	Filesystem fs.FS
@@ -240,7 +240,7 @@ var methods = [...]string{
 	REPORT,
 }
 
-// New creates an instance of Echo.
+// New creates an instance of echox.
 func New() *Echo {
 	logger := newJSONLogger(os.Stdout)
 	e := &Echo{
@@ -265,7 +265,7 @@ func New() *Echo {
 
 // NewContext returns a new Context instance.
 //
-// Note: both request and response can be left to nil as Echo.ServeHTTP will call c.Reset(req,resp) anyway
+// Note: both request and response can be left to nil as echox.ServeHTTP will call c.Reset(req,resp) anyway
 // these arguments are useful when creating context for tests and cases like that.
 func (e *Echo) NewContext(r *http.Request, w http.ResponseWriter) Context {
 	var c Context
@@ -433,7 +433,7 @@ func (e *Echo) TRACE(path string, h HandlerFunc, m ...MiddlewareFunc) RouteInfo 
 // Path supports static and named/any parameters just like other http method is defined. Generally path is ended with
 // wildcard/match-any character (`/*`, `/download/*` etc).
 //
-// Example: `e.RouteNotFound("/*", func(c echo.Context) error { return c.NoContent(http.StatusNotFound) })`
+// Example: `e.RouteNotFound("/*", func(c echox.Context) error { return c.NoContent(http.StatusNotFound) })`
 func (e *Echo) RouteNotFound(path string, h HandlerFunc, m ...MiddlewareFunc) RouteInfo {
 	return e.Add(RouteNotFound, path, h, m...)
 }
@@ -501,7 +501,7 @@ func (e *Echo) Static(pathPrefix, fsRoot string) RouteInfo {
 
 // StaticFS registers a new route with path prefix to serve static files from the provided file system.
 //
-// When dealing with `embed.FS` use `fs := echo.MustSubFS(fs, "rootDirectory") to create sub fs which uses necessary
+// When dealing with `embed.FS` use `fs := echox.MustSubFS(fs, "rootDirectory") to create sub fs which uses necessary
 // prefix for directory path. This is necessary as `//go:embed assets/images` embeds files with paths
 // including `assets/images` as their prefix.
 func (e *Echo) StaticFS(pathPrefix string, filesystem fs.FS) RouteInfo {
@@ -682,7 +682,7 @@ func (e *Echo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // In need of customization use:
 //
-//	sc := echo.StartConfig{Address: ":8080"}
+//	sc := echox.StartConfig{Address: ":8080"}
 //	if err := sc.Start(e); err != http.ErrServerClosed {
 //		log.Fatal(err)
 //	}
@@ -702,7 +702,7 @@ func (e *Echo) Start(address string) error {
 	return sc.Start(e)
 }
 
-// WrapHandler wraps `http.Handler` into `echo.HandlerFunc`.
+// WrapHandler wraps `http.Handler` into `echox.HandlerFunc`.
 func WrapHandler(h http.Handler) HandlerFunc {
 	return func(c Context) error {
 		h.ServeHTTP(c.Response(), c.Request())
@@ -710,7 +710,7 @@ func WrapHandler(h http.Handler) HandlerFunc {
 	}
 }
 
-// WrapMiddleware wraps `func(http.Handler) http.Handler` into `echo.MiddlewareFunc`
+// WrapMiddleware wraps `func(http.Handler) http.Handler` into `echox.MiddlewareFunc`
 func WrapMiddleware(m func(http.Handler) http.Handler) MiddlewareFunc {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(c Context) (err error) {
@@ -769,7 +769,7 @@ func subFS(currentFs fs.FS, root string) (fs.FS, error) {
 	root = filepath.ToSlash(filepath.Clean(root)) // note: fs.FS operates only with slashes. `ToSlash` is necessary for Windows
 	if dFS, ok := currentFs.(*defaultFS); ok {
 		// we need to make exception for `defaultFS` instances as it interprets root prefix differently from fs.FS.
-		// fs.Fs.Open does not like relative paths ("./", "../") and absolute paths at all but prior echo.Filesystem we
+		// fs.Fs.Open does not like relative paths ("./", "../") and absolute paths at all but prior echox.Filesystem we
 		// were able to use paths like `./myfile.log`, `/etc/hosts` and these would work fine with `os.Open` but not with fs.Fs
 		if !filepath.IsAbs(root) {
 			root = filepath.Join(dFS.prefix, root)
@@ -786,7 +786,7 @@ func subFS(currentFs fs.FS, root string) (fs.FS, error) {
 // Panic happens when `fsRoot` contains invalid path according to `fs.ValidPath` rules.
 //
 // MustSubFS is helpful when dealing with `embed.FS` because for example `//go:embed assets/images` embeds files with
-// paths including `assets/images` as their prefix. In that case use `fs := echo.MustSubFS(fs, "rootDirectory") to
+// paths including `assets/images` as their prefix. In that case use `fs := echox.MustSubFS(fs, "rootDirectory") to
 // create sub fs which uses necessary prefix for directory path.
 func MustSubFS(currentFs fs.FS, fsRoot string) fs.FS {
 	subFs, err := subFS(currentFs, fsRoot)

@@ -7,5 +7,5 @@
   because previous middlewares up in call chain could have logic for dealing with returned errors.
 * Create middleware configuration structs that implement `MiddlewareConfigurator` interface so can decide if they
   want to create middleware with panics or with returning errors on configuration errors.
-* When adding `echo.Context` to function type or fields make it first parameter so all functions with Context looks same.
+* When adding `echox.Context` to function type or fields make it first parameter so all functions with Context looks same.
 

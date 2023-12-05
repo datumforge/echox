@@ -3,8 +3,9 @@ package middleware
 import (
 	"errors"
 	"fmt"
-	"github.com/labstack/echo/v5"
 	"net/http"
+
+	"github.com/datumforge/echox"
 )
 
 // KeyAuthConfig defines the config for KeyAuth middleware.
@@ -50,21 +51,21 @@ type KeyAuthConfig struct {
 }
 
 // KeyAuthValidator defines a function to validate KeyAuth credentials.
-type KeyAuthValidator func(c echo.Context, key string, source ExtractorSource) (bool, error)
+type KeyAuthValidator func(c echox.Context, key string, source ExtractorSource) (bool, error)
 
 // KeyAuthErrorHandler defines a function which is executed for an invalid key.
-type KeyAuthErrorHandler func(c echo.Context, err error) error
+type KeyAuthErrorHandler func(c echox.Context, err error) error
 
 // ErrKeyMissing denotes an error raised when key value could not be extracted from request
-var ErrKeyMissing = echo.NewHTTPError(http.StatusUnauthorized, "missing key")
+var ErrKeyMissing = echox.NewHTTPError(http.StatusUnauthorized, "missing key")
 
 // ErrInvalidKey denotes an error raised when key value is invalid by validator
-var ErrInvalidKey = echo.NewHTTPError(http.StatusUnauthorized, "invalid key")
+var ErrInvalidKey = echox.NewHTTPError(http.StatusUnauthorized, "invalid key")
 
 // DefaultKeyAuthConfig is the default KeyAuth middleware config.
 var DefaultKeyAuthConfig = KeyAuthConfig{
 	Skipper:   DefaultSkipper,
-	KeyLookup: "header:" + echo.HeaderAuthorization + ":Bearer ",
+	KeyLookup: "header:" + echox.HeaderAuthorization + ":Bearer ",
 }
 
 // KeyAuth returns an KeyAuth middleware.
@@ -72,7 +73,7 @@ var DefaultKeyAuthConfig = KeyAuthConfig{
 // For valid key it calls the next handler.
 // For invalid key, it sends "401 - Unauthorized" response.
 // For missing key, it sends "400 - Bad Request" response.
-func KeyAuth(fn KeyAuthValidator) echo.MiddlewareFunc {
+func KeyAuth(fn KeyAuthValidator) echox.MiddlewareFunc {
 	c := DefaultKeyAuthConfig
 	c.Validator = fn
 	return KeyAuthWithConfig(c)
@@ -83,12 +84,12 @@ func KeyAuth(fn KeyAuthValidator) echo.MiddlewareFunc {
 // For first valid key it calls the next handler.
 // For invalid key, it sends "401 - Unauthorized" response.
 // For missing key, it sends "400 - Bad Request" response.
-func KeyAuthWithConfig(config KeyAuthConfig) echo.MiddlewareFunc {
+func KeyAuthWithConfig(config KeyAuthConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts KeyAuthConfig to middleware or returns an error for invalid configuration
-func (config KeyAuthConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config KeyAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultKeyAuthConfig.Skipper
 	}
@@ -107,8 +108,8 @@ func (config KeyAuthConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		return nil, errors.New("echo key-auth middleware could not create extractors from KeyLookup string")
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -150,7 +151,7 @@ func (config KeyAuthConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 			if lastValidatorErr == nil {
 				return ErrKeyMissing.WithInternal(err)
 			}
-			return echo.ErrUnauthorized.WithInternal(err)
+			return echox.ErrUnauthorized.WithInternal(err)
 		}
 	}, nil
 }

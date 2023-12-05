@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
-func testKeyValidator(c echo.Context, key string, source ExtractorSource) (bool, error) {
+func testKeyValidator(c echox.Context, key string, source ExtractorSource) (bool, error) {
 	switch key {
 	case "valid-key":
 		return true, nil
@@ -24,15 +24,15 @@ func testKeyValidator(c echo.Context, key string, source ExtractorSource) (bool,
 
 func TestKeyAuth(t *testing.T) {
 	handlerCalled := false
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		handlerCalled = true
 		return c.String(http.StatusOK, "test")
 	}
 	middlewareChain := KeyAuth(testKeyValidator)(handler)
 
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAuthorization, "Bearer valid-key")
+	req.Header.Set(echox.HeaderAuthorization, "Bearer valid-key")
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -54,17 +54,17 @@ func TestKeyAuthWithConfig(t *testing.T) {
 		{
 			name: "ok, defaults, key from header",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "Bearer valid-key")
+				req.Header.Set(echox.HeaderAuthorization, "Bearer valid-key")
 			},
 			expectHandlerCalled: true,
 		},
 		{
 			name: "ok, custom skipper",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "Bearer error-key")
+				req.Header.Set(echox.HeaderAuthorization, "Bearer error-key")
 			},
 			whenConfig: func(conf *KeyAuthConfig) {
-				conf.Skipper = func(context echo.Context) bool {
+				conf.Skipper = func(context echox.Context) bool {
 					return true
 				}
 			},
@@ -73,7 +73,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 		{
 			name: "nok, defaults, invalid key from header, Authorization: Bearer",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "Bearer invalid-key")
+				req.Header.Set(echox.HeaderAuthorization, "Bearer invalid-key")
 			},
 			expectHandlerCalled: false,
 			expectError:         "code=401, message=Unauthorized, internal=code=401, message=invalid key",
@@ -81,7 +81,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 		{
 			name: "nok, defaults, invalid scheme in header",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "Bear valid-key")
+				req.Header.Set(echox.HeaderAuthorization, "Bear valid-key")
 			},
 			expectHandlerCalled: false,
 			expectError:         "code=401, message=missing key, internal=invalid value in request header",
@@ -136,7 +136,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 			name: "ok, custom key lookup, form",
 			givenRequestFunc: func() *http.Request {
 				req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("key=valid-key"))
-				req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+				req.Header.Set(echox.HeaderContentType, echox.MIMEApplicationForm)
 				return req
 			},
 			whenConfig: func(conf *KeyAuthConfig) {
@@ -148,7 +148,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 			name: "nok, custom key lookup, missing key in form",
 			givenRequestFunc: func() *http.Request {
 				req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("xxx=valid-key"))
-				req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+				req.Header.Set(echox.HeaderContentType, echox.MIMEApplicationForm)
 				return req
 			},
 			whenConfig: func(conf *KeyAuthConfig) {
@@ -185,8 +185,8 @@ func TestKeyAuthWithConfig(t *testing.T) {
 			name: "nok, custom errorHandler, error from extractor",
 			whenConfig: func(conf *KeyAuthConfig) {
 				conf.KeyLookup = "header:token"
-				conf.ErrorHandler = func(c echo.Context, err error) error {
-					httpError := echo.NewHTTPError(http.StatusTeapot, "custom")
+				conf.ErrorHandler = func(c echox.Context, err error) error {
+					httpError := echox.NewHTTPError(http.StatusTeapot, "custom")
 					httpError.Internal = err
 					return httpError
 				}
@@ -197,11 +197,11 @@ func TestKeyAuthWithConfig(t *testing.T) {
 		{
 			name: "nok, custom errorHandler, error from validator",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "Bearer error-key")
+				req.Header.Set(echox.HeaderAuthorization, "Bearer error-key")
 			},
 			whenConfig: func(conf *KeyAuthConfig) {
-				conf.ErrorHandler = func(c echo.Context, err error) error {
-					httpError := echo.NewHTTPError(http.StatusTeapot, "custom")
+				conf.ErrorHandler = func(c echox.Context, err error) error {
+					httpError := echox.NewHTTPError(http.StatusTeapot, "custom")
 					httpError.Internal = err
 					return httpError
 				}
@@ -212,7 +212,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 		{
 			name: "nok, defaults, error from validator",
 			givenRequest: func(req *http.Request) {
-				req.Header.Set(echo.HeaderAuthorization, "Bearer error-key")
+				req.Header.Set(echox.HeaderAuthorization, "Bearer error-key")
 			},
 			whenConfig:          func(conf *KeyAuthConfig) {},
 			expectHandlerCalled: false,
@@ -227,7 +227,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 			},
 			whenConfig: func(conf *KeyAuthConfig) {
 				conf.KeyLookup = "query:key"
-				conf.Validator = func(c echo.Context, key string, source ExtractorSource) (bool, error) {
+				conf.Validator = func(c echox.Context, key string, source ExtractorSource) (bool, error) {
 					if source == ExtractorSourceQuery {
 						return true, nil
 					}
@@ -242,7 +242,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			handlerCalled := false
-			handler := func(c echo.Context) error {
+			handler := func(c echox.Context) error {
 				handlerCalled = true
 				return c.String(http.StatusOK, "test")
 			}
@@ -254,7 +254,7 @@ func TestKeyAuthWithConfig(t *testing.T) {
 			}
 			middlewareChain := KeyAuthWithConfig(config)(handler)
 
-			e := echo.New()
+			e := echox.New()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			if tc.givenRequestFunc != nil {
 				req = tc.givenRequestFunc()
@@ -286,7 +286,7 @@ func TestKeyAuthWithConfig_errors(t *testing.T) {
 		{
 			name: "ok, no error",
 			whenConfig: KeyAuthConfig{
-				Validator: func(c echo.Context, key string, source ExtractorSource) (bool, error) {
+				Validator: func(c echox.Context, key string, source ExtractorSource) (bool, error) {
 					return false, nil
 				},
 			},
@@ -302,7 +302,7 @@ func TestKeyAuthWithConfig_errors(t *testing.T) {
 			name: "ok, extractor source can not be split",
 			whenConfig: KeyAuthConfig{
 				KeyLookup: "nope",
-				Validator: func(c echo.Context, key string, source ExtractorSource) (bool, error) {
+				Validator: func(c echox.Context, key string, source ExtractorSource) (bool, error) {
 					return false, nil
 				},
 			},
@@ -312,7 +312,7 @@ func TestKeyAuthWithConfig_errors(t *testing.T) {
 			name: "ok, no extractors",
 			whenConfig: KeyAuthConfig{
 				KeyLookup: "nope:nope",
-				Validator: func(c echo.Context, key string, source ExtractorSource) (bool, error) {
+				Validator: func(c echox.Context, key string, source ExtractorSource) (bool, error) {
 					return false, nil
 				},
 			},
@@ -343,14 +343,14 @@ func TestMustKeyAuthWithConfig_panic(t *testing.T) {
 func TestKeyAuth_errorHandlerSwallowsError(t *testing.T) {
 	handlerCalled := false
 	var authValue string
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		handlerCalled = true
 		authValue = c.Get("auth").(string)
 		return c.String(http.StatusOK, "test")
 	}
 	middlewareChain := KeyAuthWithConfig(KeyAuthConfig{
 		Validator: testKeyValidator,
-		ErrorHandler: func(c echo.Context, err error) error {
+		ErrorHandler: func(c echox.Context, err error) error {
 			// could check error to decide if we can swallow the error
 			c.Set("auth", "public")
 			return nil
@@ -358,7 +358,7 @@ func TestKeyAuth_errorHandlerSwallowsError(t *testing.T) {
 		ContinueOnIgnoredError: true,
 	})(handler)
 
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	// no auth header this time
 	rec := httptest.NewRecorder()

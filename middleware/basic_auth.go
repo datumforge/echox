@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // BasicAuthConfig defines the config for BasicAuthWithConfig middleware.
@@ -27,7 +27,7 @@ type BasicAuthConfig struct {
 }
 
 // BasicAuthValidator defines a function to validate BasicAuthWithConfig credentials.
-type BasicAuthValidator func(c echo.Context, user string, password string) (bool, error)
+type BasicAuthValidator func(c echox.Context, user string, password string) (bool, error)
 
 const (
 	basic        = "basic"
@@ -38,17 +38,17 @@ const (
 //
 // For valid credentials it calls the next handler.
 // For missing or invalid credentials, it sends "401 - Unauthorized" response.
-func BasicAuth(fn BasicAuthValidator) echo.MiddlewareFunc {
+func BasicAuth(fn BasicAuthValidator) echox.MiddlewareFunc {
 	return BasicAuthWithConfig(BasicAuthConfig{Validator: fn})
 }
 
 // BasicAuthWithConfig returns an BasicAuthWithConfig middleware with config.
-func BasicAuthWithConfig(config BasicAuthConfig) echo.MiddlewareFunc {
+func BasicAuthWithConfig(config BasicAuthConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts BasicAuthConfig to middleware or returns an error for invalid configuration
-func (config BasicAuthConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config BasicAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Validator == nil {
 		return nil, errors.New("echo basic-auth middleware requires a validator function")
 	}
@@ -59,15 +59,15 @@ func (config BasicAuthConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		config.Realm = defaultRealm
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
 
 			var lastError error
 			l := len(basic)
-			for _, auth := range c.Request().Header[echo.HeaderAuthorization] {
+			for _, auth := range c.Request().Header[echox.HeaderAuthorization] {
 				if !(len(auth) > l+1 && strings.EqualFold(auth[:l], basic)) {
 					continue
 				}
@@ -76,7 +76,7 @@ func (config BasicAuthConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				// instead should be treated as invalid client input
 				b, errDecode := base64.StdEncoding.DecodeString(auth[l+1:])
 				if errDecode != nil {
-					lastError = echo.NewHTTPError(http.StatusBadRequest).WithInternal(errDecode)
+					lastError = echox.NewHTTPError(http.StatusBadRequest).WithInternal(errDecode)
 					continue
 				}
 				idx := bytes.IndexByte(b, ':')
@@ -100,8 +100,8 @@ func (config BasicAuthConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 			}
 
 			// Need to return `401` for browsers to pop-up login box.
-			c.Response().Header().Set(echo.HeaderWWWAuthenticate, basic+" realm="+realm)
-			return echo.ErrUnauthorized
+			c.Response().Header().Set(echox.HeaderWWWAuthenticate, basic+" realm="+realm)
+			return echox.ErrUnauthorized
 		}
 	}, nil
 }

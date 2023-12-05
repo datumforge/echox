@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // CSRFConfig defines the config for CSRF middleware.
@@ -65,17 +65,17 @@ type CSRFConfig struct {
 	CookieSameSite http.SameSite
 
 	// ErrorHandler defines a function which is executed for returning custom errors.
-	ErrorHandler func(c echo.Context, err error) error
+	ErrorHandler func(c echox.Context, err error) error
 }
 
 // ErrCSRFInvalid is returned when CSRF check fails
-var ErrCSRFInvalid = echo.NewHTTPError(http.StatusForbidden, "invalid csrf token")
+var ErrCSRFInvalid = echox.NewHTTPError(http.StatusForbidden, "invalid csrf token")
 
 // DefaultCSRFConfig is the default CSRF middleware config.
 var DefaultCSRFConfig = CSRFConfig{
 	Skipper:        DefaultSkipper,
 	TokenLength:    32,
-	TokenLookup:    "header:" + echo.HeaderXCSRFToken,
+	TokenLookup:    "header:" + echox.HeaderXCSRFToken,
 	ContextKey:     "csrf",
 	CookieName:     "_csrf",
 	CookieMaxAge:   86400,
@@ -84,17 +84,17 @@ var DefaultCSRFConfig = CSRFConfig{
 
 // CSRF returns a Cross-Site Request Forgery (CSRF) middleware.
 // See: https://en.wikipedia.org/wiki/Cross-site_request_forgery
-func CSRF() echo.MiddlewareFunc {
+func CSRF() echox.MiddlewareFunc {
 	return CSRFWithConfig(DefaultCSRFConfig)
 }
 
 // CSRFWithConfig returns a CSRF middleware with config or panics on invalid configuration.
-func CSRFWithConfig(config CSRFConfig) echo.MiddlewareFunc {
+func CSRFWithConfig(config CSRFConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts CSRFConfig to middleware or returns an error for invalid configuration
-func (config CSRFConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config CSRFConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	// Defaults
 	if config.Skipper == nil {
 		config.Skipper = DefaultCSRFConfig.Skipper
@@ -126,8 +126,8 @@ func (config CSRFConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		return nil, cErr
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -166,7 +166,7 @@ func (config CSRFConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				if lastTokenErr != nil {
 					finalErr = lastTokenErr
 				} else if lastExtractorErr != nil {
-					finalErr = echo.ErrBadRequest.WithInternal(lastExtractorErr)
+					finalErr = echox.ErrBadRequest.WithInternal(lastExtractorErr)
 				}
 				if finalErr != nil {
 					if config.ErrorHandler != nil {
@@ -198,7 +198,7 @@ func (config CSRFConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 			c.Set(config.ContextKey, token)
 
 			// Protect clients from caching the response
-			c.Response().Header().Add(echo.HeaderVary, echo.HeaderCookie)
+			c.Response().Header().Add(echox.HeaderVary, echox.HeaderCookie)
 
 			return next(c)
 		}

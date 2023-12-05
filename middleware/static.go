@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // StaticConfig defines the config for Static middleware.
@@ -27,7 +27,7 @@ type StaticConfig struct {
 	Root string
 
 	// Filesystem provides access to the static content.
-	// Optional. Defaults to echo.Filesystem (serves files from `.` folder where executable is started)
+	// Optional. Defaults to echox.Filesystem (serves files from `.` folder where executable is started)
 	Filesystem fs.FS
 
 	// Index file for serving a directory.
@@ -137,19 +137,19 @@ var DefaultStaticConfig = StaticConfig{
 }
 
 // Static returns a Static middleware to serves static content from the provided root directory.
-func Static(root string) echo.MiddlewareFunc {
+func Static(root string) echox.MiddlewareFunc {
 	c := DefaultStaticConfig
 	c.Root = root
 	return StaticWithConfig(c)
 }
 
 // StaticWithConfig returns a Static middleware to serves static content or panics on invalid configuration.
-func StaticWithConfig(config StaticConfig) echo.MiddlewareFunc {
+func StaticWithConfig(config StaticConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts StaticConfig to middleware or returns an error for invalid configuration
-func (config StaticConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config StaticConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	// Defaults
 	if config.Root == "" {
 		config.Root = "." // For security we want to restrict to CWD.
@@ -169,8 +169,8 @@ func (config StaticConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		return nil, fmt.Errorf("echo static middleware directory list template parsing error: %w", tErr)
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) (err error) {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) (err error) {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -215,7 +215,7 @@ func (config StaticConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 					return nil
 				}
 
-				var he *echo.HTTPError
+				var he *echox.HTTPError
 				if !(errors.As(err, &he) && config.HTML5 && he.Code == http.StatusNotFound) {
 					return err
 				}
@@ -258,7 +258,7 @@ func (config StaticConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 	}, nil
 }
 
-func serveFile(c echo.Context, file fs.File, info os.FileInfo) error {
+func serveFile(c echox.Context, file fs.File, info os.FileInfo) error {
 	ff, ok := file.(io.ReadSeeker)
 	if !ok {
 		return errors.New("file does not implement io.ReadSeeker")
@@ -267,9 +267,9 @@ func serveFile(c echo.Context, file fs.File, info os.FileInfo) error {
 	return nil
 }
 
-func listDir(t *template.Template, name string, filesystem fs.FS, dir fs.File, res *echo.Response) error {
+func listDir(t *template.Template, name string, filesystem fs.FS, dir fs.File, res *echox.Response) error {
 	// Create directory index
-	res.Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	res.Header().Set(echox.HeaderContentType, echox.MIMETextHTMLCharsetUTF8)
 	data := struct {
 		Name  string
 		Files []interface{}

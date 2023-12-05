@@ -8,12 +8,12 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRewriteAfterRouting(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	// middlewares added with `Use()` are executed after routing is done and do not affect which route handler is matched
 	e.Use(RewriteWithConfig(RewriteConfig{
 		Rules: map[string]string{
@@ -23,10 +23,10 @@ func TestRewriteAfterRouting(t *testing.T) {
 			"/users/*/orders/*": "/user/$1/order/$2",
 		},
 	}))
-	e.GET("/public/*", func(c echo.Context) error {
+	e.GET("/public/*", func(c echox.Context) error {
 		return c.String(http.StatusOK, c.PathParam("*"))
 	})
-	e.GET("/*", func(c echo.Context) error {
+	e.GET("/*", func(c echox.Context) error {
 		return c.String(http.StatusOK, c.PathParam("*"))
 	})
 
@@ -66,7 +66,7 @@ func TestRewriteAfterRouting(t *testing.T) {
 			expectRequestPath:    "/user/jill/order/T/cO4lW/t/Vp/", // this is equal to `url.Parse(tc.whenPath)` result
 			expectRequestRawPath: "/user/jill/order/T%2FcO4lW%2Ft%2FVp%2F",
 		},
-		{ // ` ` (space) is encoded by httpClient to `%20` when doing request to Echo. `%20` should not be double escaped or changed in any way when rewriting request
+		{ // ` ` (space) is encoded by httpClient to `%20` when doing request to echox. `%20` should not be double escaped or changed in any way when rewriting request
 			whenPath:             "/api/new users",
 			expectRoutePath:      "api/new users",
 			expectRequestPath:    "/new users",
@@ -99,7 +99,7 @@ func TestMustRewriteWithConfig_emptyRulesPanics(t *testing.T) {
 func TestMustRewriteWithConfig_skipper(t *testing.T) {
 	var testCases = []struct {
 		name         string
-		givenSkipper func(c echo.Context) bool
+		givenSkipper func(c echox.Context) bool
 		whenURL      string
 		expectURL    string
 		expectStatus int
@@ -112,7 +112,7 @@ func TestMustRewriteWithConfig_skipper(t *testing.T) {
 		},
 		{
 			name: "skipped",
-			givenSkipper: func(c echo.Context) bool {
+			givenSkipper: func(c echox.Context) bool {
 				return true
 			},
 			whenURL:      "/old",
@@ -123,7 +123,7 @@ func TestMustRewriteWithConfig_skipper(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			e.Pre(RewriteWithConfig(
 				RewriteConfig{
@@ -131,7 +131,7 @@ func TestMustRewriteWithConfig_skipper(t *testing.T) {
 					Rules:   map[string]string{"/old": "/new"}},
 			))
 
-			e.GET("/new", func(c echo.Context) error {
+			e.GET("/new", func(c echox.Context) error {
 				return c.NoContent(http.StatusOK)
 			})
 
@@ -148,7 +148,7 @@ func TestMustRewriteWithConfig_skipper(t *testing.T) {
 
 // Issue #1086
 func TestEchoRewritePreMiddleware(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	// Rewrite old url to new one
 	// middlewares added with `Pre()` are executed before routing is done and therefore change which handler matches
@@ -157,7 +157,7 @@ func TestEchoRewritePreMiddleware(t *testing.T) {
 	)
 
 	// Route
-	e.Add(http.MethodGet, "/new", func(c echo.Context) error {
+	e.Add(http.MethodGet, "/new", func(c echox.Context) error {
 		return c.NoContent(http.StatusOK)
 	})
 
@@ -170,7 +170,7 @@ func TestEchoRewritePreMiddleware(t *testing.T) {
 
 // Issue #1143
 func TestRewriteWithConfigPreMiddleware_Issue1143(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	// middlewares added with `Pre()` are executed before routing is done and therefore change which handler matches
 	e.Pre(RewriteWithConfig(RewriteConfig{
@@ -180,10 +180,10 @@ func TestRewriteWithConfigPreMiddleware_Issue1143(t *testing.T) {
 		},
 	}))
 
-	e.Add(http.MethodGet, "/api/:version/hosts/:name", func(c echo.Context) error {
+	e.Add(http.MethodGet, "/api/:version/hosts/:name", func(c echox.Context) error {
 		return c.String(http.StatusOK, "hosts")
 	})
-	e.Add(http.MethodGet, "/api/:version/eng", func(c echo.Context) error {
+	e.Add(http.MethodGet, "/api/:version/eng", func(c echox.Context) error {
 		return c.String(http.StatusOK, "eng")
 	})
 
@@ -202,7 +202,7 @@ func TestRewriteWithConfigPreMiddleware_Issue1143(t *testing.T) {
 
 // Issue #1573
 func TestEchoRewriteWithCaret(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	e.Pre(RewriteWithConfig(RewriteConfig{
 		Rules: map[string]string{
@@ -229,7 +229,7 @@ func TestEchoRewriteWithCaret(t *testing.T) {
 
 // Verify regex used with rewrite
 func TestEchoRewriteWithRegexRules(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	e.Pre(RewriteWithConfig(RewriteConfig{
 		Rules: map[string]string{
@@ -271,7 +271,7 @@ func TestEchoRewriteWithRegexRules(t *testing.T) {
 
 // Ensure correct escaping as defined in replacement (issue #1798)
 func TestEchoRewriteReplacementEscaping(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	// NOTE: these are incorrect regexps as they do not factor in that URI we are replacing could contain ? (query) and # (fragment) parts
 	// so in reality they append query and fragment part as `$1` matches everything after that prefix

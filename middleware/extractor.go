@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/labstack/echo/v5"
 	"net/textproto"
 	"strings"
+
+	"github.com/datumforge/echox"
 )
 
 const (
@@ -47,7 +48,7 @@ var errCookieExtractorValueMissing = &ValueExtractorError{message: "missing valu
 var errFormExtractorValueMissing = &ValueExtractorError{message: "missing value in the form"}
 
 // ValuesExtractor defines a function for extracting values (keys/tokens) from the given context.
-type ValuesExtractor func(c echo.Context) ([]string, ExtractorSource, error)
+type ValuesExtractor func(c echox.Context) ([]string, ExtractorSource, error)
 
 // CreateExtractors creates ValuesExtractors from given lookups.
 // Lookups is a string in the form of "<source>:<name>" or "<source>:<name>,<source>:<name>" that is used
@@ -111,7 +112,7 @@ func valuesFromHeader(header string, valuePrefix string) ValuesExtractor {
 	prefixLen := len(valuePrefix)
 	// standard library parses http.Request header keys in canonical form but we may provide something else so fix this
 	header = textproto.CanonicalMIMEHeaderKey(header)
-	return func(c echo.Context) ([]string, ExtractorSource, error) {
+	return func(c echox.Context) ([]string, ExtractorSource, error) {
 		values := c.Request().Header.Values(header)
 		if len(values) == 0 {
 			return nil, ExtractorSourceHeader, errHeaderExtractorValueMissing
@@ -146,7 +147,7 @@ func valuesFromHeader(header string, valuePrefix string) ValuesExtractor {
 
 // valuesFromQuery returns a function that extracts values from the query string.
 func valuesFromQuery(param string) ValuesExtractor {
-	return func(c echo.Context) ([]string, ExtractorSource, error) {
+	return func(c echox.Context) ([]string, ExtractorSource, error) {
 		result := c.QueryParams()[param]
 		if len(result) == 0 {
 			return nil, ExtractorSourceQuery, errQueryExtractorValueMissing
@@ -159,7 +160,7 @@ func valuesFromQuery(param string) ValuesExtractor {
 
 // valuesFromParam returns a function that extracts values from the url param string.
 func valuesFromParam(param string) ValuesExtractor {
-	return func(c echo.Context) ([]string, ExtractorSource, error) {
+	return func(c echox.Context) ([]string, ExtractorSource, error) {
 		result := make([]string, 0)
 		for i, p := range c.PathParams() {
 			if param == p.Name {
@@ -178,7 +179,7 @@ func valuesFromParam(param string) ValuesExtractor {
 
 // valuesFromCookie returns a function that extracts values from the named cookie.
 func valuesFromCookie(name string) ValuesExtractor {
-	return func(c echo.Context) ([]string, ExtractorSource, error) {
+	return func(c echox.Context) ([]string, ExtractorSource, error) {
 		cookies := c.Cookies()
 		if len(cookies) == 0 {
 			return nil, ExtractorSourceCookie, errCookieExtractorValueMissing
@@ -202,7 +203,7 @@ func valuesFromCookie(name string) ValuesExtractor {
 
 // valuesFromForm returns a function that extracts values from the form field.
 func valuesFromForm(name string) ValuesExtractor {
-	return func(c echo.Context) ([]string, ExtractorSource, error) {
+	return func(c echox.Context) ([]string, ExtractorSource, error) {
 		if c.Request().Form == nil {
 			_ = c.Request().ParseMultipartForm(32 << 20) // same what `c.Request().FormValue(name)` does
 		}

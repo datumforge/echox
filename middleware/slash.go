@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // AddTrailingSlashConfig is the middleware config for adding trailing slash to the request.
@@ -23,27 +23,27 @@ type AddTrailingSlashConfig struct {
 // trailing slash to the request `URL#Path`.
 //
 // Usage `Echo#Pre(AddTrailingSlash())`
-func AddTrailingSlash() echo.MiddlewareFunc {
+func AddTrailingSlash() echox.MiddlewareFunc {
 	return AddTrailingSlashWithConfig(AddTrailingSlashConfig{})
 }
 
 // AddTrailingSlashWithConfig returns an AddTrailingSlash middleware with config or panics on invalid configuration.
-func AddTrailingSlashWithConfig(config AddTrailingSlashConfig) echo.MiddlewareFunc {
+func AddTrailingSlashWithConfig(config AddTrailingSlashConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts AddTrailingSlashConfig to middleware or returns an error for invalid configuration
-func (config AddTrailingSlashConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config AddTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
 	if config.RedirectCode != 0 && (config.RedirectCode < http.StatusMultipleChoices || config.RedirectCode > http.StatusPermanentRedirect) {
-		// this is same check as `echo.context.Redirect()` does, but we can check this before even serving the request.
+		// this is same check as `echox.context.Redirect()` does, but we can check this before even serving the request.
 		return nil, errors.New("invalid redirect code for add trailing slash middleware")
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -87,27 +87,27 @@ type RemoveTrailingSlashConfig struct {
 // a trailing slash from the request URI.
 //
 // Usage `Echo#Pre(RemoveTrailingSlash())`
-func RemoveTrailingSlash() echo.MiddlewareFunc {
+func RemoveTrailingSlash() echox.MiddlewareFunc {
 	return RemoveTrailingSlashWithConfig(RemoveTrailingSlashConfig{})
 }
 
 // RemoveTrailingSlashWithConfig returns a RemoveTrailingSlash middleware with config or panics on invalid configuration.
-func RemoveTrailingSlashWithConfig(config RemoveTrailingSlashConfig) echo.MiddlewareFunc {
+func RemoveTrailingSlashWithConfig(config RemoveTrailingSlashConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts RemoveTrailingSlashConfig to middleware or returns an error for invalid configuration
-func (config RemoveTrailingSlashConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config RemoveTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
 	if config.RedirectCode != 0 && (config.RedirectCode < http.StatusMultipleChoices || config.RedirectCode > http.StatusPermanentRedirect) {
-		// this is same check as `echo.context.Redirect()` does, but we can check this before even serving the request.
+		// this is same check as `echox.context.Redirect()` does, but we can check this before even serving the request.
 		return nil, errors.New("invalid redirect code for remove trailing slash middleware")
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}

@@ -3,7 +3,7 @@ package middleware
 import (
 	"fmt"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // SecureConfig defines the config for Secure middleware.
@@ -85,24 +85,24 @@ var DefaultSecureConfig = SecureConfig{
 // Secure middleware provides protection against cross-site scripting (XSS) attack,
 // content type sniffing, clickjacking, insecure connection and other code injection
 // attacks.
-func Secure() echo.MiddlewareFunc {
+func Secure() echox.MiddlewareFunc {
 	return SecureWithConfig(DefaultSecureConfig)
 }
 
 // SecureWithConfig returns a Secure middleware with config or panics on invalid configuration.
-func SecureWithConfig(config SecureConfig) echo.MiddlewareFunc {
+func SecureWithConfig(config SecureConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts SecureConfig to middleware or returns an error for invalid configuration
-func (config SecureConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config SecureConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	// Defaults
 	if config.Skipper == nil {
 		config.Skipper = DefaultSecureConfig.Skipper
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -111,15 +111,15 @@ func (config SecureConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 			res := c.Response()
 
 			if config.XSSProtection != "" {
-				res.Header().Set(echo.HeaderXXSSProtection, config.XSSProtection)
+				res.Header().Set(echox.HeaderXXSSProtection, config.XSSProtection)
 			}
 			if config.ContentTypeNosniff != "" {
-				res.Header().Set(echo.HeaderXContentTypeOptions, config.ContentTypeNosniff)
+				res.Header().Set(echox.HeaderXContentTypeOptions, config.ContentTypeNosniff)
 			}
 			if config.XFrameOptions != "" {
-				res.Header().Set(echo.HeaderXFrameOptions, config.XFrameOptions)
+				res.Header().Set(echox.HeaderXFrameOptions, config.XFrameOptions)
 			}
-			if (c.IsTLS() || (req.Header.Get(echo.HeaderXForwardedProto) == "https")) && config.HSTSMaxAge != 0 {
+			if (c.IsTLS() || (req.Header.Get(echox.HeaderXForwardedProto) == "https")) && config.HSTSMaxAge != 0 {
 				subdomains := ""
 				if !config.HSTSExcludeSubdomains {
 					subdomains = "; includeSubdomains"
@@ -127,17 +127,17 @@ func (config SecureConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				if config.HSTSPreloadEnabled {
 					subdomains = fmt.Sprintf("%s; preload", subdomains)
 				}
-				res.Header().Set(echo.HeaderStrictTransportSecurity, fmt.Sprintf("max-age=%d%s", config.HSTSMaxAge, subdomains))
+				res.Header().Set(echox.HeaderStrictTransportSecurity, fmt.Sprintf("max-age=%d%s", config.HSTSMaxAge, subdomains))
 			}
 			if config.ContentSecurityPolicy != "" {
 				if config.CSPReportOnly {
-					res.Header().Set(echo.HeaderContentSecurityPolicyReportOnly, config.ContentSecurityPolicy)
+					res.Header().Set(echox.HeaderContentSecurityPolicyReportOnly, config.ContentSecurityPolicy)
 				} else {
-					res.Header().Set(echo.HeaderContentSecurityPolicy, config.ContentSecurityPolicy)
+					res.Header().Set(echox.HeaderContentSecurityPolicy, config.ContentSecurityPolicy)
 				}
 			}
 			if config.ReferrerPolicy != "" {
-				res.Header().Set(echo.HeaderReferrerPolicy, config.ReferrerPolicy)
+				res.Header().Set(echox.HeaderReferrerPolicy, config.ReferrerPolicy)
 			}
 			return next(c)
 		}
