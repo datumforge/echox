@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,12 +65,12 @@ func TestAddTrailingSlashWithConfig(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			mw := AddTrailingSlashWithConfig(AddTrailingSlashConfig{
 				RedirectCode: http.StatusMovedPermanently,
 			})
-			h := mw(func(c echo.Context) error {
+			h := mw(func(c echox.Context) error {
 				return nil
 			})
 
@@ -82,7 +82,7 @@ func TestAddTrailingSlashWithConfig(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, tc.expectPath, req.URL.Path)
-			assert.Equal(t, tc.expectLocation, rec.Header()[echo.HeaderLocation])
+			assert.Equal(t, tc.expectLocation, rec.Header()[echox.HeaderLocation])
 			if tc.expectStatus == 0 {
 				assert.Equal(t, http.StatusMovedPermanently, rec.Code)
 			} else {
@@ -118,9 +118,9 @@ func TestAddTrailingSlash(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
-			h := AddTrailingSlash()(func(c echo.Context) error {
+			h := AddTrailingSlash()(func(c echox.Context) error {
 				return nil
 			})
 
@@ -132,7 +132,7 @@ func TestAddTrailingSlash(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, tc.expectPath, req.URL.Path)
-			assert.Equal(t, []string(nil), rec.Header()[echo.HeaderLocation])
+			assert.Equal(t, []string(nil), rec.Header()[echox.HeaderLocation])
 			assert.Equal(t, http.StatusOK, rec.Code)
 		})
 	}
@@ -201,12 +201,12 @@ func TestRemoveTrailingSlashWithConfig(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			mw := RemoveTrailingSlashWithConfig(RemoveTrailingSlashConfig{
 				RedirectCode: http.StatusMovedPermanently,
 			})
-			h := mw(func(c echo.Context) error {
+			h := mw(func(c echox.Context) error {
 				return nil
 			})
 
@@ -218,7 +218,7 @@ func TestRemoveTrailingSlashWithConfig(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, tc.expectPath, req.URL.Path)
-			assert.Equal(t, tc.expectLocation, rec.Header()[echo.HeaderLocation])
+			assert.Equal(t, tc.expectLocation, rec.Header()[echox.HeaderLocation])
 			if tc.expectStatus == 0 {
 				assert.Equal(t, http.StatusMovedPermanently, rec.Code)
 			} else {
@@ -257,9 +257,9 @@ func TestRemoveTrailingSlash(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
-			h := RemoveTrailingSlash()(func(c echo.Context) error {
+			h := RemoveTrailingSlash()(func(c echox.Context) error {
 				return nil
 			})
 
@@ -271,7 +271,7 @@ func TestRemoveTrailingSlash(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, tc.expectPath, req.URL.Path)
-			assert.Equal(t, []string(nil), rec.Header()[echo.HeaderLocation])
+			assert.Equal(t, []string(nil), rec.Header()[echox.HeaderLocation])
 			assert.Equal(t, http.StatusOK, rec.Code)
 		})
 	}

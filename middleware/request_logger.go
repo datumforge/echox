@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"errors"
-	"github.com/labstack/echo/v5"
 	"net/http"
 	"time"
+
+	"github.com/datumforge/echox"
 )
 
 // Example for `fmt.Printf`
@@ -13,7 +14,7 @@ import (
 //		LogURI:      true,
 //		LogError:    true,
 //		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
-//		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+//		LogValuesFunc: func(c echox.Context, v middleware.RequestLoggerValues) error {
 //			if v.Error == nil {
 //				fmt.Printf("REQUEST: uri: %v, status: %v\n", v.URI, v.Status)
 //			} else {
@@ -30,7 +31,7 @@ import (
 //		LogStatus:   true,
 //		LogError:    true,
 //		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
-//		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+//		LogValuesFunc: func(c echox.Context, v middleware.RequestLoggerValues) error {
 //			if v.Error == nil {
 //				logger.Info().
 //					Str("URI", v.URI).
@@ -54,7 +55,7 @@ import (
 //		LogStatus:   true,
 //		LogError:    true,
 //		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
-//		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+//		LogValuesFunc: func(c echox.Context, v middleware.RequestLoggerValues) error {
 //			if v.Error == nil {
 //				logger.Info("request",
 //					zap.String("URI", v.URI),
@@ -78,7 +79,7 @@ import (
 //		LogStatus:   true,
 //		LogError:    true,
 //		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
-//		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+//		LogValuesFunc: func(c echox.Context, v middleware.RequestLoggerValues) error {
 //			if v.Error == nil {
 //				log.WithFields(logrus.Fields{
 //					"URI":    v.URI,
@@ -101,10 +102,10 @@ type RequestLoggerConfig struct {
 	Skipper Skipper
 
 	// BeforeNextFunc defines a function that is called before next middleware or handler is called in chain.
-	BeforeNextFunc func(c echo.Context)
+	BeforeNextFunc func(c echox.Context)
 	// LogValuesFunc defines a function that is called with values extracted by logger from request/response.
 	// Mandatory.
-	LogValuesFunc func(c echo.Context, v RequestLoggerValues) error
+	LogValuesFunc func(c echox.Context, v RequestLoggerValues) error
 
 	// HandleError instructs logger to call global error handler when next middleware/handler returns an error.
 	// This is useful when you have custom error handler that can decide to use different status codes.
@@ -117,7 +118,7 @@ type RequestLoggerConfig struct {
 	LogLatency bool
 	// LogProtocol instructs logger to extract request protocol (i.e. `HTTP/1.1` or `HTTP/2`)
 	LogProtocol bool
-	// LogRemoteIP instructs logger to extract request remote IP. See `echo.Context.RealIP()` for implementation details.
+	// LogRemoteIP instructs logger to extract request remote IP. See `echox.Context.RealIP()` for implementation details.
 	LogRemoteIP bool
 	// LogHost instructs logger to extract request host value (i.e. `example.com`)
 	LogHost bool
@@ -135,8 +136,8 @@ type RequestLoggerConfig struct {
 	LogReferer bool
 	// LogUserAgent instructs logger to extract request user agent values.
 	LogUserAgent bool
-	// LogStatus instructs logger to extract response status code. If handler chain returns an echo.HTTPError,
-	// the status code is extracted from the echo.HTTPError returned
+	// LogStatus instructs logger to extract response status code. If handler chain returns an echox.HTTPError,
+	// the status code is extracted from the echox.HTTPError returned
 	LogStatus bool
 	// LogError instructs logger to extract error returned from executed handler chain.
 	LogError bool
@@ -170,7 +171,7 @@ type RequestLoggerValues struct {
 	Latency time.Duration
 	// Protocol is request protocol (i.e. `HTTP/1.1` or `HTTP/2`)
 	Protocol string
-	// RemoteIP is request remote IP. See `echo.Context.RealIP()` for implementation details.
+	// RemoteIP is request remote IP. See `echox.Context.RealIP()` for implementation details.
 	RemoteIP string
 	// Host is request host value (i.e. `example.com`)
 	Host string
@@ -188,7 +189,7 @@ type RequestLoggerValues struct {
 	Referer string
 	// UserAgent is request user agent values.
 	UserAgent string
-	// Status is response status code. Then handler returns an echo.HTTPError then code from there.
+	// Status is response status code. Then handler returns an echox.HTTPError then code from there.
 	Status int
 	// Error is error returned from executed handler chain.
 	Error error
@@ -211,7 +212,7 @@ type RequestLoggerValues struct {
 }
 
 // RequestLoggerWithConfig returns a RequestLogger middleware with config.
-func RequestLoggerWithConfig(config RequestLoggerConfig) echo.MiddlewareFunc {
+func RequestLoggerWithConfig(config RequestLoggerConfig) echox.MiddlewareFunc {
 	mw, err := config.ToMiddleware()
 	if err != nil {
 		panic(err)
@@ -220,7 +221,7 @@ func RequestLoggerWithConfig(config RequestLoggerConfig) echo.MiddlewareFunc {
 }
 
 // ToMiddleware converts RequestLoggerConfig into middleware or returns an error for invalid configuration.
-func (config RequestLoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config RequestLoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -242,8 +243,8 @@ func (config RequestLoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 	logQueryParams := len(config.LogQueryParams) > 0
 	logFormValues := len(config.LogFormValues) > 0
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -294,9 +295,9 @@ func (config RequestLoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				v.RoutePath = c.Path()
 			}
 			if config.LogRequestID {
-				id := req.Header.Get(echo.HeaderXRequestID)
+				id := req.Header.Get(echox.HeaderXRequestID)
 				if id == "" {
-					id = res.Header().Get(echo.HeaderXRequestID)
+					id = res.Header().Get(echox.HeaderXRequestID)
 				}
 				v.RequestID = id
 			}
@@ -311,7 +312,7 @@ func (config RequestLoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				if err != nil && !config.HandleError {
 					//  this block should not be executed in case of HandleError=true as the global error handler will decide
 					//  the status code. In that case status code could be different from what err contains.
-					var httpErr *echo.HTTPError
+					var httpErr *echox.HTTPError
 					if errors.As(err, &httpErr) {
 						v.Status = httpErr.Code
 					}
@@ -321,7 +322,7 @@ func (config RequestLoggerConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				v.Error = err
 			}
 			if config.LogContentLength {
-				v.ContentLength = req.Header.Get(echo.HeaderContentLength)
+				v.ContentLength = req.Header.Get(echox.HeaderContentLength)
 			}
 			if config.LogResponseSize {
 				v.ResponseSize = res.Size

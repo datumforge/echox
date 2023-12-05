@@ -11,7 +11,7 @@ import (
 //-----------------------------------------------------------------------------
 // Example for Zap (https://github.com/uber-go/zap)
 //func main() {
-//	e := echo.New()
+//	e := echox.New()
 //	logger, _ := zap.NewProduction()
 //	e.Logger = &ZapLogger{logger: logger}
 //}
@@ -32,7 +32,7 @@ import (
 //-----------------------------------------------------------------------------
 // Example for Zerolog (https://github.com/rs/zerolog)
 //func main() {
-//	e := echo.New()
+//	e := echox.New()
 //	logger := zerolog.New(os.Stdout)
 //	e.Logger = &ZeroLogger{logger: &logger}
 //}
@@ -54,7 +54,7 @@ import (
 //-----------------------------------------------------------------------------
 // Example for Logrus (https://github.com/sirupsen/logrus)
 //func main() {
-//	e := echo.New()
+//	e := echox.New()
 //	e.Logger = &LogrusLogger{logger: logrus.New()}
 //}
 //

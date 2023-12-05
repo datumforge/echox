@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/time/rate"
 )
 
 func TestRateLimiter(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
@@ -40,7 +40,7 @@ func TestRateLimiter(t *testing.T) {
 
 	for _, tc := range testCases {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		req.Header.Add(echo.HeaderXRealIP, tc.id)
+		req.Header.Add(echox.HeaderXRealIP, tc.id)
 
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
@@ -70,24 +70,24 @@ func TestMustRateLimiterWithConfig_panicBehaviour(t *testing.T) {
 func TestRateLimiterWithConfig(t *testing.T) {
 	var inMemoryStore = NewRateLimiterMemoryStoreWithConfig(RateLimiterMemoryStoreConfig{Rate: 1, Burst: 3})
 
-	e := echo.New()
+	e := echox.New()
 
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
 	mw, err := RateLimiterConfig{
-		IdentifierExtractor: func(c echo.Context) (string, error) {
-			id := c.Request().Header.Get(echo.HeaderXRealIP)
+		IdentifierExtractor: func(c echox.Context) (string, error) {
+			id := c.Request().Header.Get(echox.HeaderXRealIP)
 			if id == "" {
 				return "", errors.New("invalid identifier")
 			}
 			return id, nil
 		},
-		DenyHandler: func(ctx echo.Context, identifier string, err error) error {
+		DenyHandler: func(ctx echox.Context, identifier string, err error) error {
 			return ctx.JSON(http.StatusForbidden, nil)
 		},
-		ErrorHandler: func(ctx echo.Context, err error) error {
+		ErrorHandler: func(ctx echox.Context, err error) error {
 			return ctx.JSON(http.StatusBadRequest, nil)
 		},
 		Store: inMemoryStore,
@@ -109,7 +109,7 @@ func TestRateLimiterWithConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		req.Header.Add(echo.HeaderXRealIP, tc.id)
+		req.Header.Add(echox.HeaderXRealIP, tc.id)
 
 		rec := httptest.NewRecorder()
 
@@ -125,15 +125,15 @@ func TestRateLimiterWithConfig(t *testing.T) {
 func TestRateLimiterWithConfig_defaultDenyHandler(t *testing.T) {
 	var inMemoryStore = NewRateLimiterMemoryStoreWithConfig(RateLimiterMemoryStoreConfig{Rate: 1, Burst: 3})
 
-	e := echo.New()
+	e := echox.New()
 
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
 	mw, err := RateLimiterConfig{
-		IdentifierExtractor: func(c echo.Context) (string, error) {
-			id := c.Request().Header.Get(echo.HeaderXRealIP)
+		IdentifierExtractor: func(c echox.Context) (string, error) {
+			id := c.Request().Header.Get(echox.HeaderXRealIP)
 			if id == "" {
 				return "", errors.New("invalid identifier")
 			}
@@ -158,7 +158,7 @@ func TestRateLimiterWithConfig_defaultDenyHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		req.Header.Add(echo.HeaderXRealIP, tc.id)
+		req.Header.Add(echox.HeaderXRealIP, tc.id)
 
 		rec := httptest.NewRecorder()
 
@@ -178,9 +178,9 @@ func TestRateLimiterWithConfig_defaultConfig(t *testing.T) {
 	{
 		var inMemoryStore = NewRateLimiterMemoryStoreWithConfig(RateLimiterMemoryStoreConfig{Rate: 1, Burst: 3})
 
-		e := echo.New()
+		e := echox.New()
 
-		handler := func(c echo.Context) error {
+		handler := func(c echox.Context) error {
 			return c.String(http.StatusOK, "test")
 		}
 
@@ -204,7 +204,7 @@ func TestRateLimiterWithConfig_defaultConfig(t *testing.T) {
 
 		for _, tc := range testCases {
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			req.Header.Add(echo.HeaderXRealIP, tc.id)
+			req.Header.Add(echox.HeaderXRealIP, tc.id)
 
 			rec := httptest.NewRecorder()
 
@@ -222,30 +222,30 @@ func TestRateLimiterWithConfig_defaultConfig(t *testing.T) {
 }
 
 func TestRateLimiterWithConfig_skipper(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var beforeFuncRan bool
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 	var inMemoryStore = NewRateLimiterMemoryStore(5)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Add(echo.HeaderXRealIP, "127.0.0.1")
+	req.Header.Add(echox.HeaderXRealIP, "127.0.0.1")
 
 	rec := httptest.NewRecorder()
 
 	c := e.NewContext(req, rec)
 
 	mw, err := RateLimiterConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c echox.Context) bool {
 			return true
 		},
-		BeforeFunc: func(c echo.Context) {
+		BeforeFunc: func(c echox.Context) {
 			beforeFuncRan = true
 		},
 		Store: inMemoryStore,
-		IdentifierExtractor: func(ctx echo.Context) (string, error) {
+		IdentifierExtractor: func(ctx echox.Context) (string, error) {
 			return "127.0.0.1", nil
 		},
 	}.ToMiddleware()
@@ -258,30 +258,30 @@ func TestRateLimiterWithConfig_skipper(t *testing.T) {
 }
 
 func TestRateLimiterWithConfig_skipperNoSkip(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var beforeFuncRan bool
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 	var inMemoryStore = NewRateLimiterMemoryStore(5)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Add(echo.HeaderXRealIP, "127.0.0.1")
+	req.Header.Add(echox.HeaderXRealIP, "127.0.0.1")
 
 	rec := httptest.NewRecorder()
 
 	c := e.NewContext(req, rec)
 
 	mw, err := RateLimiterConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c echox.Context) bool {
 			return false
 		},
-		BeforeFunc: func(c echo.Context) {
+		BeforeFunc: func(c echox.Context) {
 			beforeFuncRan = true
 		},
 		Store: inMemoryStore,
-		IdentifierExtractor: func(ctx echo.Context) (string, error) {
+		IdentifierExtractor: func(ctx echox.Context) (string, error) {
 			return "127.0.0.1", nil
 		},
 	}.ToMiddleware()
@@ -293,9 +293,9 @@ func TestRateLimiterWithConfig_skipperNoSkip(t *testing.T) {
 }
 
 func TestRateLimiterWithConfig_beforeFunc(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
-	handler := func(c echo.Context) error {
+	handler := func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	}
 
@@ -303,18 +303,18 @@ func TestRateLimiterWithConfig_beforeFunc(t *testing.T) {
 	var inMemoryStore = NewRateLimiterMemoryStoreWithConfig(RateLimiterMemoryStoreConfig{Rate: 1, Burst: 3})
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Add(echo.HeaderXRealIP, "127.0.0.1")
+	req.Header.Add(echox.HeaderXRealIP, "127.0.0.1")
 
 	rec := httptest.NewRecorder()
 
 	c := e.NewContext(req, rec)
 
 	mw, err := RateLimiterConfig{
-		BeforeFunc: func(c echo.Context) {
+		BeforeFunc: func(c echox.Context) {
 			beforeRan = true
 		},
 		Store: inMemoryStore,
-		IdentifierExtractor: func(ctx echo.Context) (string, error) {
+		IdentifierExtractor: func(ctx echox.Context) (string, error) {
 			return "127.0.0.1", nil
 		},
 	}.ToMiddleware()

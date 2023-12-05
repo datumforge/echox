@@ -7,17 +7,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBodyLimitConfig_ToMiddleware(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	hw := []byte("Hello, World!")
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(hw))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := func(c echo.Context) error {
+	h := func(c echox.Context) error {
 		body, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
@@ -38,7 +38,7 @@ func TestBodyLimitConfig_ToMiddleware(t *testing.T) {
 	// Based on content read (overlimit)
 	mw, err = BodyLimitConfig{LimitBytes: 2}.ToMiddleware()
 	assert.NoError(t, err)
-	he := mw(h)(c).(*echo.HTTPError)
+	he := mw(h)(c).(*echox.HTTPError)
 	assert.Equal(t, http.StatusRequestEntityTooLarge, he.Code)
 
 	// Based on content read (within limit)
@@ -61,7 +61,7 @@ func TestBodyLimitConfig_ToMiddleware(t *testing.T) {
 	c = e.NewContext(req, rec)
 	mw, err = BodyLimitConfig{LimitBytes: 2}.ToMiddleware()
 	assert.NoError(t, err)
-	he = mw(h)(c).(*echo.HTTPError)
+	he = mw(h)(c).(*echox.HTTPError)
 	assert.Equal(t, http.StatusRequestEntityTooLarge, he.Code)
 }
 
@@ -79,7 +79,7 @@ func TestBodyLimitReader(t *testing.T) {
 
 	// read all should return ErrStatusRequestEntityTooLarge
 	_, err := io.ReadAll(reader)
-	he := err.(*echo.HTTPError)
+	he := err.(*echox.HTTPError)
 	assert.Equal(t, http.StatusRequestEntityTooLarge, he.Code)
 
 	// reset reader and read two bytes must succeed
@@ -91,8 +91,8 @@ func TestBodyLimitReader(t *testing.T) {
 }
 
 func TestBodyLimit_skipper(t *testing.T) {
-	e := echo.New()
-	h := func(c echo.Context) error {
+	e := echox.New()
+	h := func(c echox.Context) error {
 		body, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
@@ -100,7 +100,7 @@ func TestBodyLimit_skipper(t *testing.T) {
 		return c.String(http.StatusOK, string(body))
 	}
 	mw, err := BodyLimitConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c echox.Context) bool {
 			return true
 		},
 		LimitBytes: 2,
@@ -119,12 +119,12 @@ func TestBodyLimit_skipper(t *testing.T) {
 }
 
 func TestBodyLimitWithConfig(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	hw := []byte("Hello, World!")
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(hw))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := func(c echo.Context) error {
+	h := func(c echox.Context) error {
 		body, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err
@@ -141,12 +141,12 @@ func TestBodyLimitWithConfig(t *testing.T) {
 }
 
 func TestBodyLimit(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	hw := []byte("Hello, World!")
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(hw))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := func(c echo.Context) error {
+	h := func(c echox.Context) error {
 		body, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err

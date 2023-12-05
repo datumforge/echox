@@ -9,12 +9,12 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestStatic_useCaseForApiAndSPAs(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	// serve single page application (SPA) files from server root
 	e.Use(StaticWithConfig(StaticConfig{
@@ -26,7 +26,7 @@ func TestStatic_useCaseForApiAndSPAs(t *testing.T) {
 	// all requests to `/api/*` will end up in echo handlers (assuming there is not `api` folder and files)
 	api := e.Group("/api")
 	users := api.Group("/users")
-	users.GET("/info", func(c echo.Context) error {
+	users.GET("/info", func(c echox.Context) error {
 		return c.String(http.StatusOK, "users info")
 	})
 
@@ -138,7 +138,7 @@ func TestStatic(t *testing.T) {
 			name: "ok, skip middleware and serve handler",
 			givenConfig: &StaticConfig{
 				Root: "_fixture/images/",
-				Skipper: func(c echo.Context) bool {
+				Skipper: func(c echox.Context) bool {
 					return true
 				},
 			},
@@ -170,7 +170,7 @@ func TestStatic(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 			e.Filesystem = os.DirFS("../")
 
 			config := StaticConfig{Root: "_fixture"}
@@ -183,15 +183,15 @@ func TestStatic(t *testing.T) {
 				subGroup := e.Group(tc.givenAttachedToGroup, middlewareFunc)
 				// group without http handlers (routes) does not do anything.
 				// Request is matched against http handlers (routes) that have group middleware attached to them
-				subGroup.GET("", func(c echo.Context) error { return echo.ErrNotFound })
-				subGroup.GET("/*", func(c echo.Context) error { return echo.ErrNotFound })
+				subGroup.GET("", func(c echox.Context) error { return echox.ErrNotFound })
+				subGroup.GET("/*", func(c echox.Context) error { return echox.ErrNotFound })
 			} else {
 				// middleware is on root level
 				e.Use(middlewareFunc)
-				e.GET("/regular-handler", func(c echo.Context) error {
+				e.GET("/regular-handler", func(c echox.Context) error {
 					return c.String(http.StatusOK, "ok")
 				})
-				e.GET("/walle.png", func(c echo.Context) error {
+				e.GET("/walle.png", func(c echox.Context) error {
 					return c.String(http.StatusTeapot, "walle")
 				})
 			}
@@ -207,7 +207,7 @@ func TestStatic(t *testing.T) {
 				assert.Contains(t, responseBody, tc.expectContains)
 			}
 			if tc.expectLength != "" {
-				assert.Equal(t, rec.Header().Get(echo.HeaderContentLength), tc.expectLength)
+				assert.Equal(t, rec.Header().Get(echox.HeaderContentLength), tc.expectLength)
 			}
 		})
 	}
@@ -337,7 +337,7 @@ func TestStatic_GroupWithStatic(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 			e.Filesystem = os.DirFS("../") // so we can access test files
 
 			group := "/group"
@@ -361,9 +361,9 @@ func TestStatic_GroupWithStatic(t *testing.T) {
 			}
 
 			if tc.expectHeaderLocation != "" {
-				assert.Equal(t, tc.expectHeaderLocation, rec.Header().Get(echo.HeaderLocation))
+				assert.Equal(t, tc.expectHeaderLocation, rec.Header().Get(echox.HeaderLocation))
 			} else {
-				_, ok := rec.Result().Header[echo.HeaderLocation]
+				_, ok := rec.Result().Header[echox.HeaderLocation]
 				assert.False(t, ok)
 			}
 		})
@@ -503,7 +503,7 @@ func TestStatic_CustomFS(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			config := StaticConfig{
 				Root:       ".",

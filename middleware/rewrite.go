@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // RewriteConfig defines the config for Rewrite middleware.
@@ -33,7 +33,7 @@ type RewriteConfig struct {
 // Rewrite returns a Rewrite middleware.
 //
 // Rewrite middleware rewrites the URL path based on the provided rules.
-func Rewrite(rules map[string]string) echo.MiddlewareFunc {
+func Rewrite(rules map[string]string) echox.MiddlewareFunc {
 	c := RewriteConfig{}
 	c.Rules = rules
 	return RewriteWithConfig(c)
@@ -42,12 +42,12 @@ func Rewrite(rules map[string]string) echo.MiddlewareFunc {
 // RewriteWithConfig returns a Rewrite middleware or panics on invalid configuration.
 //
 // Rewrite middleware rewrites the URL path based on the provided rules.
-func RewriteWithConfig(config RewriteConfig) echo.MiddlewareFunc {
+func RewriteWithConfig(config RewriteConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts RewriteConfig to middleware or returns an error for invalid configuration
-func (config RewriteConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config RewriteConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -62,8 +62,8 @@ func (config RewriteConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		config.RegexRules[k] = v
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) (err error) {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) (err error) {
 			if config.Skipper(c) {
 				return next(c)
 			}

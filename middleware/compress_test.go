@@ -10,18 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGzip_NoAcceptEncodingHeader(t *testing.T) {
 	// Skip if no Accept-Encoding header
-	h := Gzip()(func(c echo.Context) error {
+	h := Gzip()(func(c echox.Context) error {
 		c.Response().Write([]byte("test")) // For Content-Type sniffing
 		return nil
 	})
 
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -39,14 +39,14 @@ func TestMustGzipWithConfig_panics(t *testing.T) {
 }
 
 func TestGzip_AcceptEncodingHeader(t *testing.T) {
-	h := Gzip()(func(c echo.Context) error {
+	h := Gzip()(func(c echox.Context) error {
 		c.Response().Write([]byte("test")) // For Content-Type sniffing
 		return nil
 	})
 
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -54,8 +54,8 @@ func TestGzip_AcceptEncodingHeader(t *testing.T) {
 	err := h(c)
 	assert.NoError(t, err)
 
-	assert.Equal(t, gzipScheme, rec.Header().Get(echo.HeaderContentEncoding))
-	assert.Contains(t, rec.Header().Get(echo.HeaderContentType), echo.MIMETextPlain)
+	assert.Equal(t, gzipScheme, rec.Header().Get(echox.HeaderContentEncoding))
+	assert.Contains(t, rec.Header().Get(echox.HeaderContentType), echox.MIMETextPlain)
 
 	r, err := gzip.NewReader(rec.Body)
 	assert.NoError(t, err)
@@ -66,15 +66,15 @@ func TestGzip_AcceptEncodingHeader(t *testing.T) {
 }
 
 func TestGzip_chunked(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
 	chunkChan := make(chan struct{})
 	waitChan := make(chan struct{})
-	h := Gzip()(func(c echo.Context) error {
+	h := Gzip()(func(c echox.Context) error {
 		c.Response().Header().Set("Content-Type", "text/event-stream")
 		c.Response().Header().Set("Transfer-Encoding", "chunked")
 
@@ -115,7 +115,7 @@ func TestGzip_chunked(t *testing.T) {
 	<-chunkChan                      // wait for return from handler
 	time.Sleep(5 * time.Millisecond) // to have time for flushing
 
-	assert.Equal(t, gzipScheme, rec.Header().Get(echo.HeaderContentEncoding))
+	assert.Equal(t, gzipScheme, rec.Header().Get(echox.HeaderContentEncoding))
 
 	r, err := gzip.NewReader(rec.Body)
 	assert.NoError(t, err)
@@ -125,33 +125,33 @@ func TestGzip_chunked(t *testing.T) {
 }
 
 func TestGzip_NoContent(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := Gzip()(func(c echo.Context) error {
+	h := Gzip()(func(c echox.Context) error {
 		return c.NoContent(http.StatusNoContent)
 	})
 	if assert.NoError(t, h(c)) {
-		assert.Empty(t, rec.Header().Get(echo.HeaderContentEncoding))
-		assert.Empty(t, rec.Header().Get(echo.HeaderContentType))
+		assert.Empty(t, rec.Header().Get(echox.HeaderContentEncoding))
+		assert.Empty(t, rec.Header().Get(echox.HeaderContentType))
 		assert.Equal(t, 0, len(rec.Body.Bytes()))
 	}
 }
 
 func TestGzip_Empty(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := Gzip()(func(c echo.Context) error {
+	h := Gzip()(func(c echox.Context) error {
 		return c.String(http.StatusOK, "")
 	})
 	if assert.NoError(t, h(c)) {
-		assert.Equal(t, gzipScheme, rec.Header().Get(echo.HeaderContentEncoding))
-		assert.Equal(t, "text/plain; charset=UTF-8", rec.Header().Get(echo.HeaderContentType))
+		assert.Equal(t, gzipScheme, rec.Header().Get(echox.HeaderContentEncoding))
+		assert.Equal(t, "text/plain; charset=UTF-8", rec.Header().Get(echox.HeaderContentType))
 		r, err := gzip.NewReader(rec.Body)
 		if assert.NoError(t, err) {
 			var buf bytes.Buffer
@@ -162,17 +162,17 @@ func TestGzip_Empty(t *testing.T) {
 }
 
 func TestGzip_ErrorReturned(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	e.Use(Gzip())
-	e.GET("/", func(c echo.Context) error {
-		return echo.ErrNotFound
+	e.GET("/", func(c echox.Context) error {
+		return echox.ErrNotFound
 	})
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
-	assert.Empty(t, rec.Header().Get(echo.HeaderContentEncoding))
+	assert.Empty(t, rec.Header().Get(echox.HeaderContentEncoding))
 }
 
 func TestGzipWithConfig_invalidLevel(t *testing.T) {
@@ -183,13 +183,13 @@ func TestGzipWithConfig_invalidLevel(t *testing.T) {
 
 // Issue #806
 func TestGzipWithStatic(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	e.Filesystem = os.DirFS("../")
 
 	e.Use(Gzip())
 	e.Static("/test", "_fixture/images")
 	req := httptest.NewRequest(http.MethodGet, "/test/walle.png", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 
 	e.ServeHTTP(rec, req)
@@ -213,19 +213,19 @@ func TestGzipWithStatic(t *testing.T) {
 }
 
 func TestGzipWithMinLength(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	// Minimal response length
 	e.Use(GzipWithConfig(GzipConfig{MinLength: 10}))
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/", func(c echox.Context) error {
 		c.Response().Write([]byte("foobarfoobar"))
 		return nil
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
-	assert.Equal(t, gzipScheme, rec.Header().Get(echo.HeaderContentEncoding))
+	assert.Equal(t, gzipScheme, rec.Header().Get(echox.HeaderContentEncoding))
 	r, err := gzip.NewReader(rec.Body)
 	if assert.NoError(t, err) {
 		buf := new(bytes.Buffer)
@@ -236,53 +236,53 @@ func TestGzipWithMinLength(t *testing.T) {
 }
 
 func TestGzipWithMinLengthTooShort(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	// Minimal response length
 	e.Use(GzipWithConfig(GzipConfig{MinLength: 10}))
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/", func(c echox.Context) error {
 		c.Response().Write([]byte("test"))
 		return nil
 	})
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
-	assert.Equal(t, "", rec.Header().Get(echo.HeaderContentEncoding))
+	assert.Equal(t, "", rec.Header().Get(echox.HeaderContentEncoding))
 	assert.Contains(t, rec.Body.String(), "test")
 }
 
 func TestGzipWithResponseWithoutBody(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	e.Use(Gzip())
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/", func(c echox.Context) error {
 		return c.Redirect(http.StatusMovedPermanently, "http://localhost")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 
 	e.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rec.Code)
-	assert.Equal(t, "", rec.Header().Get(echo.HeaderContentEncoding))
+	assert.Equal(t, "", rec.Header().Get(echox.HeaderContentEncoding))
 }
 
 func TestGzipWithMinLengthChunked(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	// Gzip chunked
 	chunkBuf := make([]byte, 5)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 
 	var r *gzip.Reader = nil
 
 	c := e.NewContext(req, rec)
-	next := func(c echo.Context) error {
+	next := func(c echox.Context) error {
 		c.Response().Header().Set("Content-Type", "text/event-stream")
 		c.Response().Header().Set("Transfer-Encoding", "chunked")
 
@@ -292,7 +292,7 @@ func TestGzipWithMinLengthChunked(t *testing.T) {
 
 		// Read the first part of the data
 		assert.True(t, rec.Flushed)
-		assert.Equal(t, gzipScheme, rec.Header().Get(echo.HeaderContentEncoding))
+		assert.Equal(t, gzipScheme, rec.Header().Get(echox.HeaderContentEncoding))
 
 		var err error
 		r, err = gzip.NewReader(rec.Body)
@@ -328,28 +328,28 @@ func TestGzipWithMinLengthChunked(t *testing.T) {
 }
 
 func TestGzipWithMinLengthNoContent(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := GzipWithConfig(GzipConfig{MinLength: 10})(func(c echo.Context) error {
+	h := GzipWithConfig(GzipConfig{MinLength: 10})(func(c echox.Context) error {
 		return c.NoContent(http.StatusNoContent)
 	})
 	if assert.NoError(t, h(c)) {
-		assert.Empty(t, rec.Header().Get(echo.HeaderContentEncoding))
-		assert.Empty(t, rec.Header().Get(echo.HeaderContentType))
+		assert.Empty(t, rec.Header().Get(echox.HeaderContentEncoding))
+		assert.Empty(t, rec.Header().Get(echox.HeaderContentType))
 		assert.Equal(t, 0, len(rec.Body.Bytes()))
 	}
 }
 
 func BenchmarkGzip(b *testing.B) {
-	e := echo.New()
+	e := echox.New()
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(echo.HeaderAcceptEncoding, gzipScheme)
+	req.Header.Set(echox.HeaderAcceptEncoding, gzipScheme)
 
-	h := Gzip()(func(c echo.Context) error {
+	h := Gzip()(func(c echox.Context) error {
 		c.Response().Write([]byte("test")) // For Content-Type sniffing
 		return nil
 	})

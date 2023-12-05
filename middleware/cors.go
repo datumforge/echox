@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // CORSConfig defines the config for CORS middleware.
@@ -47,7 +47,7 @@ type CORSConfig struct {
 	// Optional. Default value DefaultCORSConfig.AllowMethods.
 	// If `allowMethods` is left empty, this middleware will fill for preflight
 	// request `Access-Control-Allow-Methods` header value
-	// from `Allow` header that echo.Router set into context.
+	// from `Allow` header that echox.Router set into context.
 	//
 	// See also: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods
 	AllowMethods []string
@@ -123,18 +123,18 @@ var DefaultCORSConfig = CORSConfig{
 // [MDN: Cross-Origin Resource Sharing (CORS)]: https://developer.mozilla.org/en/docs/Web/HTTP/Access_control_CORS
 // [Exploiting CORS misconfigurations for Bitcoins and bounties]: https://blog.portswigger.net/2016/10/exploiting-cors-misconfigurations-for.html
 // [Portswigger: Cross-origin resource sharing (CORS)]: https://portswigger.net/web-security/cors
-func CORS() echo.MiddlewareFunc {
+func CORS() echox.MiddlewareFunc {
 	return CORSWithConfig(DefaultCORSConfig)
 }
 
 // CORSWithConfig returns a CORS middleware with config or panics on invalid configuration.
 // See: [CORS].
-func CORSWithConfig(config CORSConfig) echo.MiddlewareFunc {
+func CORSWithConfig(config CORSConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts CORSConfig to middleware or returns an error for invalid configuration
-func (config CORSConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	// Defaults
 	if config.Skipper == nil {
 		config.Skipper = DefaultCORSConfig.Skipper
@@ -162,18 +162,18 @@ func (config CORSConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 	exposeHeaders := strings.Join(config.ExposeHeaders, ",")
 	maxAge := strconv.Itoa(config.MaxAge)
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
 
 			req := c.Request()
 			res := c.Response()
-			origin := req.Header.Get(echo.HeaderOrigin)
+			origin := req.Header.Get(echox.HeaderOrigin)
 			allowOrigin := ""
 
-			res.Header().Add(echo.HeaderVary, echo.HeaderOrigin)
+			res.Header().Add(echox.HeaderVary, echox.HeaderOrigin)
 
 			// Preflight request is an OPTIONS request, using three HTTP request headers: Access-Control-Request-Method,
 			// Access-Control-Request-Headers, and the Origin header. See: https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request
@@ -187,10 +187,10 @@ func (config CORSConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 			// handler does.
 			routerAllowMethods := ""
 			if preflight {
-				tmpAllowMethods, ok := c.Get(echo.ContextKeyHeaderAllow).(string)
+				tmpAllowMethods, ok := c.Get(echox.ContextKeyHeaderAllow).(string)
 				if ok && tmpAllowMethods != "" {
 					routerAllowMethods = tmpAllowMethods
-					c.Response().Header().Set(echo.HeaderAllow, routerAllowMethods)
+					c.Response().Header().Set(echox.HeaderAllow, routerAllowMethods)
 				}
 			}
 
@@ -252,39 +252,39 @@ func (config CORSConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 				return c.NoContent(http.StatusNoContent)
 			}
 
-			res.Header().Set(echo.HeaderAccessControlAllowOrigin, allowOrigin)
+			res.Header().Set(echox.HeaderAccessControlAllowOrigin, allowOrigin)
 			if config.AllowCredentials {
-				res.Header().Set(echo.HeaderAccessControlAllowCredentials, "true")
+				res.Header().Set(echox.HeaderAccessControlAllowCredentials, "true")
 			}
 
 			// Simple request
 			if !preflight {
 				if exposeHeaders != "" {
-					res.Header().Set(echo.HeaderAccessControlExposeHeaders, exposeHeaders)
+					res.Header().Set(echox.HeaderAccessControlExposeHeaders, exposeHeaders)
 				}
 				return next(c)
 			}
 
 			// Preflight request
-			res.Header().Add(echo.HeaderVary, echo.HeaderAccessControlRequestMethod)
-			res.Header().Add(echo.HeaderVary, echo.HeaderAccessControlRequestHeaders)
+			res.Header().Add(echox.HeaderVary, echox.HeaderAccessControlRequestMethod)
+			res.Header().Add(echox.HeaderVary, echox.HeaderAccessControlRequestHeaders)
 
 			if !hasCustomAllowMethods && routerAllowMethods != "" {
-				res.Header().Set(echo.HeaderAccessControlAllowMethods, routerAllowMethods)
+				res.Header().Set(echox.HeaderAccessControlAllowMethods, routerAllowMethods)
 			} else {
-				res.Header().Set(echo.HeaderAccessControlAllowMethods, allowMethods)
+				res.Header().Set(echox.HeaderAccessControlAllowMethods, allowMethods)
 			}
 
 			if allowHeaders != "" {
-				res.Header().Set(echo.HeaderAccessControlAllowHeaders, allowHeaders)
+				res.Header().Set(echox.HeaderAccessControlAllowHeaders, allowHeaders)
 			} else {
-				h := req.Header.Get(echo.HeaderAccessControlRequestHeaders)
+				h := req.Header.Get(echox.HeaderAccessControlRequestHeaders)
 				if h != "" {
-					res.Header().Set(echo.HeaderAccessControlAllowHeaders, h)
+					res.Header().Set(echox.HeaderAccessControlAllowHeaders, h)
 				}
 			}
 			if config.MaxAge > 0 {
-				res.Header().Set(echo.HeaderAccessControlMaxAge, maxAge)
+				res.Header().Set(echox.HeaderAccessControlMaxAge, maxAge)
 			}
 			return c.NoContent(http.StatusNoContent)
 		}

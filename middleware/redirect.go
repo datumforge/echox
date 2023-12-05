@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // RedirectConfig defines the config for Redirect middleware.
@@ -46,12 +46,12 @@ var RedirectNonWWWConfig = RedirectConfig{redirect: redirectNonWWW}
 // For example, http://labstack.com will be redirect to https://labstack.com.
 //
 // Usage `Echo#Pre(HTTPSRedirect())`
-func HTTPSRedirect() echo.MiddlewareFunc {
+func HTTPSRedirect() echox.MiddlewareFunc {
 	return HTTPSRedirectWithConfig(RedirectHTTPSConfig)
 }
 
 // HTTPSRedirectWithConfig returns a HTTPS redirect middleware with config or panics on invalid configuration.
-func HTTPSRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
+func HTTPSRedirectWithConfig(config RedirectConfig) echox.MiddlewareFunc {
 	config.redirect = redirectHTTPS
 	return toMiddlewareOrPanic(config)
 }
@@ -60,12 +60,12 @@ func HTTPSRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
 // For example, http://labstack.com will be redirect to https://www.labstack.com.
 //
 // Usage `Echo#Pre(HTTPSWWWRedirect())`
-func HTTPSWWWRedirect() echo.MiddlewareFunc {
+func HTTPSWWWRedirect() echox.MiddlewareFunc {
 	return HTTPSWWWRedirectWithConfig(RedirectHTTPSWWWConfig)
 }
 
 // HTTPSWWWRedirectWithConfig returns a HTTPS WWW redirect middleware with config or panics on invalid configuration.
-func HTTPSWWWRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
+func HTTPSWWWRedirectWithConfig(config RedirectConfig) echox.MiddlewareFunc {
 	config.redirect = redirectHTTPSWWW
 	return toMiddlewareOrPanic(config)
 }
@@ -74,12 +74,12 @@ func HTTPSWWWRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
 // For example, http://www.labstack.com will be redirect to https://labstack.com.
 //
 // Usage `Echo#Pre(HTTPSNonWWWRedirect())`
-func HTTPSNonWWWRedirect() echo.MiddlewareFunc {
+func HTTPSNonWWWRedirect() echox.MiddlewareFunc {
 	return HTTPSNonWWWRedirectWithConfig(RedirectNonHTTPSWWWConfig)
 }
 
 // HTTPSNonWWWRedirectWithConfig returns a HTTPS Non-WWW redirect middleware with config or panics on invalid configuration.
-func HTTPSNonWWWRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
+func HTTPSNonWWWRedirectWithConfig(config RedirectConfig) echox.MiddlewareFunc {
 	config.redirect = redirectNonHTTPSWWW
 	return toMiddlewareOrPanic(config)
 }
@@ -88,12 +88,12 @@ func HTTPSNonWWWRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
 // For example, http://labstack.com will be redirect to http://www.labstack.com.
 //
 // Usage `Echo#Pre(WWWRedirect())`
-func WWWRedirect() echo.MiddlewareFunc {
+func WWWRedirect() echox.MiddlewareFunc {
 	return WWWRedirectWithConfig(RedirectWWWConfig)
 }
 
 // WWWRedirectWithConfig returns a WWW redirect middleware with config or panics on invalid configuration.
-func WWWRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
+func WWWRedirectWithConfig(config RedirectConfig) echox.MiddlewareFunc {
 	config.redirect = redirectWWW
 	return toMiddlewareOrPanic(config)
 }
@@ -102,18 +102,18 @@ func WWWRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
 // For example, http://www.labstack.com will be redirect to http://labstack.com.
 //
 // Usage `Echo#Pre(NonWWWRedirect())`
-func NonWWWRedirect() echo.MiddlewareFunc {
+func NonWWWRedirect() echox.MiddlewareFunc {
 	return NonWWWRedirectWithConfig(RedirectNonWWWConfig)
 }
 
 // NonWWWRedirectWithConfig returns a Non-WWW redirect middleware with config or panics on invalid configuration.
-func NonWWWRedirectWithConfig(config RedirectConfig) echo.MiddlewareFunc {
+func NonWWWRedirectWithConfig(config RedirectConfig) echox.MiddlewareFunc {
 	config.redirect = redirectNonWWW
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts RedirectConfig to middleware or returns an error for invalid configuration
-func (config RedirectConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config RedirectConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -124,8 +124,8 @@ func (config RedirectConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		return nil, errors.New("redirectConfig is missing redirect function")
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}

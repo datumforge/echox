@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // DecompressConfig defines the config for Decompress middleware.
@@ -35,17 +35,17 @@ func (d *DefaultGzipDecompressPool) gzipDecompressPool() sync.Pool {
 }
 
 // Decompress decompresses request body based if content encoding type is set to "gzip" with default config
-func Decompress() echo.MiddlewareFunc {
+func Decompress() echox.MiddlewareFunc {
 	return DecompressWithConfig(DecompressConfig{})
 }
 
 // DecompressWithConfig returns a decompress middleware with config or panics on invalid configuration.
-func DecompressWithConfig(config DecompressConfig) echo.MiddlewareFunc {
+func DecompressWithConfig(config DecompressConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts DecompressConfig to middleware or returns an error for invalid configuration
-func (config DecompressConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config DecompressConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -53,22 +53,22 @@ func (config DecompressConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		config.GzipDecompressPool = &DefaultGzipDecompressPool{}
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
 		pool := config.GzipDecompressPool.gzipDecompressPool()
 
-		return func(c echo.Context) error {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
 
-			if c.Request().Header.Get(echo.HeaderContentEncoding) != GZIPEncoding {
+			if c.Request().Header.Get(echox.HeaderContentEncoding) != GZIPEncoding {
 				return next(c)
 			}
 
 			i := pool.Get()
 			gr, ok := i.(*gzip.Reader)
 			if !ok || gr == nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, i.(error).Error())
+				return echox.NewHTTPError(http.StatusInternalServerError, i.(error).Error())
 			}
 			defer pool.Put(gr)
 

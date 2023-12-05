@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBasicAuth(t *testing.T) {
-	validatorFunc := func(c echo.Context, u, p string) (bool, error) {
+	validatorFunc := func(c echox.Context, u, p string) (bool, error) {
 		if u == "joe" && p == "secret" {
 			return true, nil
 		}
@@ -89,7 +89,7 @@ func TestBasicAuth(t *testing.T) {
 		},
 		{
 			name: "ok, skipped",
-			givenConfig: BasicAuthConfig{Validator: validatorFunc, Skipper: func(c echo.Context) bool {
+			givenConfig: BasicAuthConfig{Validator: validatorFunc, Skipper: func(c echox.Context) bool {
 				return true
 			}},
 			whenAuth: []string{strings.ToUpper(basic) + " " + base64.StdEncoding.EncodeToString([]byte("invalid"))},
@@ -98,7 +98,7 @@ func TestBasicAuth(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
@@ -108,13 +108,13 @@ func TestBasicAuth(t *testing.T) {
 			mw, err := config.ToMiddleware()
 			assert.NoError(t, err)
 
-			h := mw(func(c echo.Context) error {
+			h := mw(func(c echox.Context) error {
 				return c.String(http.StatusTeapot, "test")
 			})
 
 			if len(tc.whenAuth) != 0 {
 				for _, a := range tc.whenAuth {
-					req.Header.Add(echo.HeaderAuthorization, a)
+					req.Header.Add(echox.HeaderAuthorization, a)
 				}
 			}
 			err = h(c)
@@ -127,7 +127,7 @@ func TestBasicAuth(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			if tc.expectHeader != "" {
-				assert.Equal(t, tc.expectHeader, res.Header().Get(echo.HeaderWWWAuthenticate))
+				assert.Equal(t, tc.expectHeader, res.Header().Get(echox.HeaderWWWAuthenticate))
 			}
 		})
 	}
@@ -139,7 +139,7 @@ func TestBasicAuth_panic(t *testing.T) {
 		assert.NotNil(t, mw)
 	})
 
-	mw := BasicAuth(func(c echo.Context, user string, password string) (bool, error) {
+	mw := BasicAuth(func(c echox.Context, user string, password string) (bool, error) {
 		return true, nil
 	})
 	assert.NotNil(t, mw)
@@ -151,7 +151,7 @@ func TestBasicAuthWithConfig_panic(t *testing.T) {
 		assert.NotNil(t, mw)
 	})
 
-	mw := BasicAuthWithConfig(BasicAuthConfig{Validator: func(c echo.Context, user string, password string) (bool, error) {
+	mw := BasicAuthWithConfig(BasicAuthConfig{Validator: func(c echox.Context, user string, password string) (bool, error) {
 		return true, nil
 	}})
 	assert.NotNil(t, mw)

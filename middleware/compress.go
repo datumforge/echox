@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 const (
@@ -53,17 +53,17 @@ type gzipResponseWriter struct {
 }
 
 // Gzip returns a middleware which compresses HTTP response using gzip compression scheme.
-func Gzip() echo.MiddlewareFunc {
+func Gzip() echox.MiddlewareFunc {
 	return GzipWithConfig(GzipConfig{})
 }
 
 // GzipWithConfig returns a middleware which compresses HTTP response using gzip compression scheme.
-func GzipWithConfig(config GzipConfig) echo.MiddlewareFunc {
+func GzipWithConfig(config GzipConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts GzipConfig to middleware or returns an error for invalid configuration
-func (config GzipConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config GzipConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -80,19 +80,19 @@ func (config GzipConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 	pool := gzipCompressPool(config)
 	bpool := bufferPool()
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
 
 			res := c.Response()
-			res.Header().Add(echo.HeaderVary, echo.HeaderAcceptEncoding)
-			if strings.Contains(c.Request().Header.Get(echo.HeaderAcceptEncoding), gzipScheme) {
+			res.Header().Add(echox.HeaderVary, echox.HeaderAcceptEncoding)
+			if strings.Contains(c.Request().Header.Get(echox.HeaderAcceptEncoding), gzipScheme) {
 				i := pool.Get()
 				w, ok := i.(*gzip.Writer)
 				if !ok {
-					return echo.NewHTTPErrorWithInternal(http.StatusInternalServerError, i.(error))
+					return echox.NewHTTPErrorWithInternal(http.StatusInternalServerError, i.(error))
 				}
 				rw := res.Writer
 				w.Reset(rw)
@@ -105,8 +105,8 @@ func (config GzipConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 					// a) handler response had only response code and no response body (ala 404 or redirects etc). Response code need to be written now.
 					// b) body is shorter than our minimum length threshold and being buffered currently and needs to be written
 					if !grw.wroteBody {
-						if res.Header().Get(echo.HeaderContentEncoding) == gzipScheme {
-							res.Header().Del(echo.HeaderContentEncoding)
+						if res.Header().Get(echox.HeaderContentEncoding) == gzipScheme {
+							res.Header().Del(echox.HeaderContentEncoding)
 						}
 						if grw.wroteHeader {
 							rw.WriteHeader(grw.code)
@@ -137,7 +137,7 @@ func (config GzipConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 }
 
 func (w *gzipResponseWriter) WriteHeader(code int) {
-	w.Header().Del(echo.HeaderContentLength) // Issue #444
+	w.Header().Del(echox.HeaderContentLength) // Issue #444
 
 	w.wroteHeader = true
 
@@ -146,8 +146,8 @@ func (w *gzipResponseWriter) WriteHeader(code int) {
 }
 
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
-	if w.Header().Get(echo.HeaderContentType) == "" {
-		w.Header().Set(echo.HeaderContentType, http.DetectContentType(b))
+	if w.Header().Get(echox.HeaderContentType) == "" {
+		w.Header().Set(echox.HeaderContentType, http.DetectContentType(b))
 	}
 	w.wroteBody = true
 
@@ -158,7 +158,7 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 			w.minLengthExceeded = true
 
 			// The minimum length is exceeded, add Content-Encoding header and write the header
-			w.Header().Set(echo.HeaderContentEncoding, gzipScheme) // Issue #806
+			w.Header().Set(echox.HeaderContentEncoding, gzipScheme) // Issue #806
 			if w.wroteHeader {
 				w.ResponseWriter.WriteHeader(w.code)
 			}
@@ -176,7 +176,7 @@ func (w *gzipResponseWriter) Flush() {
 	if !w.minLengthExceeded {
 		// Enforce compression because we will not know how much more data will come
 		w.minLengthExceeded = true
-		w.Header().Set(echo.HeaderContentEncoding, gzipScheme) // Issue #806
+		w.Header().Set(echox.HeaderContentEncoding, gzipScheme) // Issue #806
 		if w.wroteHeader {
 			w.ResponseWriter.WriteHeader(w.code)
 		}

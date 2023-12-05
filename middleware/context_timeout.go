@@ -3,8 +3,9 @@ package middleware
 import (
 	"context"
 	"errors"
-	"github.com/labstack/echo/v5"
 	"time"
+
+	"github.com/datumforge/echox"
 )
 
 // ContextTimeoutConfig defines the config for ContextTimeout middleware.
@@ -13,7 +14,7 @@ type ContextTimeoutConfig struct {
 	Skipper Skipper
 
 	// ErrorHandler is a function when error aries in middeware execution.
-	ErrorHandler func(c echo.Context, err error) error
+	ErrorHandler func(c echox.Context, err error) error
 
 	// Timeout configures a timeout for the middleware
 	Timeout time.Duration
@@ -21,17 +22,17 @@ type ContextTimeoutConfig struct {
 
 // ContextTimeout returns a middleware which returns error (503 Service Unavailable error) to client
 // when underlying method returns context.DeadlineExceeded error.
-func ContextTimeout(timeout time.Duration) echo.MiddlewareFunc {
+func ContextTimeout(timeout time.Duration) echox.MiddlewareFunc {
 	return ContextTimeoutWithConfig(ContextTimeoutConfig{Timeout: timeout})
 }
 
 // ContextTimeoutWithConfig returns a Timeout middleware with config.
-func ContextTimeoutWithConfig(config ContextTimeoutConfig) echo.MiddlewareFunc {
+func ContextTimeoutWithConfig(config ContextTimeoutConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts Config to middleware.
-func (config ContextTimeoutConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config ContextTimeoutConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Timeout == 0 {
 		return nil, errors.New("timeout must be set")
 	}
@@ -39,16 +40,16 @@ func (config ContextTimeoutConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		config.Skipper = DefaultSkipper
 	}
 	if config.ErrorHandler == nil {
-		config.ErrorHandler = func(c echo.Context, err error) error {
+		config.ErrorHandler = func(c echox.Context, err error) error {
 			if err != nil && errors.Is(err, context.DeadlineExceeded) {
-				return echo.ErrServiceUnavailable.WithInternal(err)
+				return echox.ErrServiceUnavailable.WithInternal(err)
 			}
 			return err
 		}
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}

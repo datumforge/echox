@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"github.com/labstack/echo/v5"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,22 +8,25 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/datumforge/echox"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRequestLoggerWithConfig(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var expect RequestLoggerValues
 	e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
 		LogRoutePath: true,
 		LogURI:       true,
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			expect = values
 			return nil
 		},
 	}))
 
-	e.GET("/test", func(c echo.Context) error {
+	e.GET("/test", func(c echox.Context) error {
 		return c.String(http.StatusTeapot, "OK")
 	})
 
@@ -47,20 +48,20 @@ func TestRequestLoggerWithConfig_missingOnLogValuesPanics(t *testing.T) {
 }
 
 func TestRequestLogger_skipper(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	loggerCalled := false
 	e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c echox.Context) bool {
 			return true
 		},
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			loggerCalled = true
 			return nil
 		},
 	}))
 
-	e.GET("/test", func(c echo.Context) error {
+	e.GET("/test", func(c echox.Context) error {
 		return c.String(http.StatusTeapot, "OK")
 	})
 
@@ -74,20 +75,20 @@ func TestRequestLogger_skipper(t *testing.T) {
 }
 
 func TestRequestLogger_beforeNextFunc(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var myLoggerInstance int
 	e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
-		BeforeNextFunc: func(c echo.Context) {
+		BeforeNextFunc: func(c echox.Context) {
 			c.Set("myLoggerInstance", 42)
 		},
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			myLoggerInstance = c.Get("myLoggerInstance").(int)
 			return nil
 		},
 	}))
 
-	e.GET("/test", func(c echo.Context) error {
+	e.GET("/test", func(c echox.Context) error {
 		return c.String(http.StatusTeapot, "OK")
 	})
 
@@ -101,20 +102,20 @@ func TestRequestLogger_beforeNextFunc(t *testing.T) {
 }
 
 func TestRequestLogger_logError(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var actual RequestLoggerValues
 	e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
 		LogError:  true,
 		LogStatus: true,
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			actual = values
 			return nil
 		},
 	}))
 
-	e.GET("/test", func(c echo.Context) error {
-		return echo.NewHTTPError(http.StatusNotAcceptable, "nope")
+	e.GET("/test", func(c echox.Context) error {
+		return echox.NewHTTPError(http.StatusNotAcceptable, "nope")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -128,7 +129,7 @@ func TestRequestLogger_logError(t *testing.T) {
 }
 
 func TestRequestLogger_HandleError(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var actual RequestLoggerValues
 	e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
@@ -138,22 +139,22 @@ func TestRequestLogger_HandleError(t *testing.T) {
 		HandleError: true,
 		LogError:    true,
 		LogStatus:   true,
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			actual = values
 			return nil
 		},
 	}))
 
 	// to see if "HandleError" works we create custom error handler that uses its own status codes
-	e.HTTPErrorHandler = func(c echo.Context, err error) {
+	e.HTTPErrorHandler = func(c echox.Context, err error) {
 		if c.Response().Committed {
 			return
 		}
 		c.JSON(http.StatusTeapot, "custom error handler")
 	}
 
-	e.GET("/test", func(c echo.Context) error {
-		return echo.NewHTTPError(http.StatusForbidden, "nope")
+	e.GET("/test", func(c echox.Context) error {
+		return echox.NewHTTPError(http.StatusForbidden, "nope")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -166,25 +167,25 @@ func TestRequestLogger_HandleError(t *testing.T) {
 	expect := RequestLoggerValues{
 		StartTime: time.Unix(1631045377, 0).UTC(),
 		Status:    http.StatusTeapot,
-		Error:     echo.NewHTTPError(http.StatusForbidden, "nope"),
+		Error:     echox.NewHTTPError(http.StatusForbidden, "nope"),
 	}
 	assert.Equal(t, expect, actual)
 }
 
 func TestRequestLogger_LogValuesFuncError(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var expect RequestLoggerValues
 	e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
 		LogError:  true,
 		LogStatus: true,
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			expect = values
-			return echo.NewHTTPError(http.StatusNotAcceptable, "LogValuesFuncError")
+			return echox.NewHTTPError(http.StatusNotAcceptable, "LogValuesFuncError")
 		},
 	}))
 
-	e.GET("/test", func(c echo.Context) error {
+	e.GET("/test", func(c echox.Context) error {
 		return c.String(http.StatusTeapot, "OK")
 	})
 
@@ -220,25 +221,25 @@ func TestRequestLogger_ID(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := echo.New()
+			e := echox.New()
 
 			var expect RequestLoggerValues
 			e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
 				LogRequestID: true,
-				LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+				LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 					expect = values
 					return nil
 				},
 			}))
 
-			e.GET("/test", func(c echo.Context) error {
-				c.Response().Header().Set(echo.HeaderXRequestID, "321")
+			e.GET("/test", func(c echox.Context) error {
+				c.Response().Header().Set(echox.HeaderXRequestID, "321")
 				return c.String(http.StatusTeapot, "OK")
 			})
 
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			if tc.whenFromRequest {
-				req.Header.Set(echo.HeaderXRequestID, "123")
+				req.Header.Set(echox.HeaderXRequestID, "123")
 			}
 			rec := httptest.NewRecorder()
 
@@ -251,23 +252,23 @@ func TestRequestLogger_ID(t *testing.T) {
 }
 
 func TestRequestLogger_headerIsCaseInsensitive(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	var expect RequestLoggerValues
 	mw := RequestLoggerWithConfig(RequestLoggerConfig{
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			expect = values
 			return nil
 		},
 		LogHeaders: []string{"referer", "User-Agent"},
-	})(func(c echo.Context) error {
-		c.Request().Header.Set(echo.HeaderXRequestID, "123")
+	})(func(c echox.Context) error {
+		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
 		return c.String(http.StatusTeapot, "OK")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test?lang=en&checked=1&checked=2", nil)
-	req.Header.Set("referer", "https://echo.labstack.com/")
+	req.Header.Set("referer", "https://echox.labstack.com/")
 
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -276,16 +277,16 @@ func TestRequestLogger_headerIsCaseInsensitive(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, expect.Headers, 1)
-	assert.Equal(t, []string{"https://echo.labstack.com/"}, expect.Headers["Referer"])
+	assert.Equal(t, []string{"https://echox.labstack.com/"}, expect.Headers["Referer"])
 }
 
 func TestRequestLogger_allFields(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 
 	isFirstNowCall := true
 	var expect RequestLoggerValues
 	mw := RequestLoggerWithConfig(RequestLoggerConfig{
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			expect = values
 			return nil
 		},
@@ -314,8 +315,8 @@ func TestRequestLogger_allFields(t *testing.T) {
 			}
 			return time.Unix(1631045377+10, 0)
 		},
-	})(func(c echo.Context) error {
-		c.Request().Header.Set(echo.HeaderXRequestID, "123")
+	})(func(c echox.Context) error {
+		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
 		return c.String(http.StatusTeapot, "OK")
 	})
@@ -326,14 +327,14 @@ func TestRequestLogger_allFields(t *testing.T) {
 	f.Add("multiple", "2")
 	reader := strings.NewReader(f.Encode())
 	req := httptest.NewRequest(http.MethodPost, "/test?lang=en&checked=1&checked=2", reader)
-	req.Header.Set("Referer", "https://echo.labstack.com/")
+	req.Header.Set("Referer", "https://echox.labstack.com/")
 	req.Header.Set("User-Agent", "curl/7.68.0")
-	req.Header.Set(echo.HeaderContentLength, strconv.Itoa(int(reader.Size())))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
-	req.Header.Set(echo.HeaderXRealIP, "8.8.8.8")
+	req.Header.Set(echox.HeaderContentLength, strconv.Itoa(int(reader.Size())))
+	req.Header.Set(echox.HeaderContentType, echox.MIMEApplicationForm)
+	req.Header.Set(echox.HeaderXRealIP, "8.8.8.8")
 
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec).(echo.ServableContext)
+	c := e.NewContext(req, rec).(echox.ServableContext)
 
 	c.SetPath("/test*")
 
@@ -350,7 +351,7 @@ func TestRequestLogger_allFields(t *testing.T) {
 	assert.Equal(t, "/test", expect.URIPath)
 	assert.Equal(t, "/test*", expect.RoutePath)
 	assert.Equal(t, "123", expect.RequestID)
-	assert.Equal(t, "https://echo.labstack.com/", expect.Referer)
+	assert.Equal(t, "https://echox.labstack.com/", expect.Referer)
 	assert.Equal(t, "curl/7.68.0", expect.UserAgent)
 	assert.Equal(t, 418, expect.Status)
 	assert.Equal(t, nil, expect.Error)
@@ -370,11 +371,11 @@ func TestRequestLogger_allFields(t *testing.T) {
 }
 
 func BenchmarkRequestLogger_withoutMapFields(b *testing.B) {
-	e := echo.New()
+	e := echox.New()
 
 	mw := RequestLoggerWithConfig(RequestLoggerConfig{
 		Skipper: nil,
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			return nil
 		},
 		LogLatency:       true,
@@ -392,13 +393,13 @@ func BenchmarkRequestLogger_withoutMapFields(b *testing.B) {
 		LogError:         true,
 		LogContentLength: true,
 		LogResponseSize:  true,
-	})(func(c echo.Context) error {
-		c.Request().Header.Set(echo.HeaderXRequestID, "123")
+	})(func(c echox.Context) error {
+		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		return c.String(http.StatusTeapot, "OK")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test?lang=en", nil)
-	req.Header.Set("Referer", "https://echo.labstack.com/")
+	req.Header.Set("Referer", "https://echox.labstack.com/")
 	req.Header.Set("User-Agent", "curl/7.68.0")
 
 	b.ReportAllocs()
@@ -412,10 +413,10 @@ func BenchmarkRequestLogger_withoutMapFields(b *testing.B) {
 }
 
 func BenchmarkRequestLogger_withMapFields(b *testing.B) {
-	e := echo.New()
+	e := echox.New()
 
 	mw := RequestLoggerWithConfig(RequestLoggerConfig{
-		LogValuesFunc: func(c echo.Context, values RequestLoggerValues) error {
+		LogValuesFunc: func(c echox.Context, values RequestLoggerValues) error {
 			return nil
 		},
 		LogLatency:       true,
@@ -436,8 +437,8 @@ func BenchmarkRequestLogger_withMapFields(b *testing.B) {
 		LogHeaders:       []string{"accept-encoding", "User-Agent"},
 		LogQueryParams:   []string{"lang", "checked"},
 		LogFormValues:    []string{"csrf", "multiple"},
-	})(func(c echo.Context) error {
-		c.Request().Header.Set(echo.HeaderXRequestID, "123")
+	})(func(c echox.Context) error {
+		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
 		return c.String(http.StatusTeapot, "OK")
 	})
@@ -447,9 +448,9 @@ func BenchmarkRequestLogger_withMapFields(b *testing.B) {
 	f.Add("multiple", "1")
 	f.Add("multiple", "2")
 	req := httptest.NewRequest(http.MethodPost, "/test?lang=en&checked=1&checked=2", strings.NewReader(f.Encode()))
-	req.Header.Set("Referer", "https://echo.labstack.com/")
+	req.Header.Set("Referer", "https://echox.labstack.com/")
 	req.Header.Set("User-Agent", "curl/7.68.0")
-	req.Header.Add(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.Header.Add(echox.HeaderContentType, echox.MIMEApplicationForm)
 
 	b.ReportAllocs()
 	b.ResetTimer()

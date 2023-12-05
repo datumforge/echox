@@ -1,8 +1,6 @@
 package middleware
 
-import (
-	"github.com/labstack/echo/v5"
-)
+import "github.com/datumforge/echox"
 
 // RequestIDConfig defines the config for RequestID middleware.
 type RequestIDConfig struct {
@@ -14,24 +12,24 @@ type RequestIDConfig struct {
 	Generator func() string
 
 	// RequestIDHandler defines a function which is executed for a request id.
-	RequestIDHandler func(c echo.Context, requestID string)
+	RequestIDHandler func(c echox.Context, requestID string)
 
 	// TargetHeader defines what header to look for to populate the id
 	TargetHeader string
 }
 
 // RequestID returns a X-Request-ID middleware.
-func RequestID() echo.MiddlewareFunc {
+func RequestID() echox.MiddlewareFunc {
 	return RequestIDWithConfig(RequestIDConfig{})
 }
 
 // RequestIDWithConfig returns a X-Request-ID middleware with config or panics on invalid configuration.
-func RequestIDWithConfig(config RequestIDConfig) echo.MiddlewareFunc {
+func RequestIDWithConfig(config RequestIDConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts RequestIDConfig to middleware or returns an error for invalid configuration
-func (config RequestIDConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config RequestIDConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -39,11 +37,11 @@ func (config RequestIDConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		config.Generator = createRandomStringGenerator(32)
 	}
 	if config.TargetHeader == "" {
-		config.TargetHeader = echo.HeaderXRequestID
+		config.TargetHeader = echox.HeaderXRequestID
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}

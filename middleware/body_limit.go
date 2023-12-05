@@ -4,7 +4,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // BodyLimitConfig defines the config for BodyLimitWithConfig middleware.
@@ -27,7 +27,7 @@ type limitedReader struct {
 // BodyLimit middleware sets the maximum allowed size for a request body, if the size exceeds the configured limit, it
 // sends "413 - Request Entity Too Large" response. The BodyLimit is determined based on both `Content-Length` request
 // header and actual content read, which makes it super secure.
-func BodyLimit(limitBytes int64) echo.MiddlewareFunc {
+func BodyLimit(limitBytes int64) echox.MiddlewareFunc {
 	return BodyLimitWithConfig(BodyLimitConfig{LimitBytes: limitBytes})
 }
 
@@ -35,12 +35,12 @@ func BodyLimit(limitBytes int64) echo.MiddlewareFunc {
 // a request body, if the  size exceeds the configured limit, it sends "413 - Request Entity Too Large" response.
 // The BodyLimitWithConfig is determined based on both `Content-Length` request header and actual content read, which
 // makes it super secure.
-func BodyLimitWithConfig(config BodyLimitConfig) echo.MiddlewareFunc {
+func BodyLimitWithConfig(config BodyLimitConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts BodyLimitConfig to middleware or returns an error for invalid configuration
-func (config BodyLimitConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config BodyLimitConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -50,8 +50,8 @@ func (config BodyLimitConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		},
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
@@ -59,7 +59,7 @@ func (config BodyLimitConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 
 			// Based on content length
 			if req.ContentLength > config.LimitBytes {
-				return echo.ErrStatusRequestEntityTooLarge
+				return echox.ErrStatusRequestEntityTooLarge
 			}
 
 			// Based on content read
@@ -77,7 +77,7 @@ func (r *limitedReader) Read(b []byte) (n int, err error) {
 	n, err = r.reader.Read(b)
 	r.read += int64(n)
 	if r.read > r.LimitBytes {
-		return n, echo.ErrStatusRequestEntityTooLarge
+		return n, echox.ErrStatusRequestEntityTooLarge
 	}
 	return
 }

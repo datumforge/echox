@@ -13,17 +13,17 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLogger(t *testing.T) {
 	// Note: Just for the test coverage, not a real test.
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := Logger()(func(c echo.Context) error {
+	h := Logger()(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
@@ -33,7 +33,7 @@ func TestLogger(t *testing.T) {
 	// Status 3xx
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
-	h = Logger()(func(c echo.Context) error {
+	h = Logger()(func(c echox.Context) error {
 		return c.String(http.StatusTemporaryRedirect, "test")
 	})
 	h(c)
@@ -41,7 +41,7 @@ func TestLogger(t *testing.T) {
 	// Status 4xx
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
-	h = Logger()(func(c echo.Context) error {
+	h = Logger()(func(c echox.Context) error {
 		return c.String(http.StatusNotFound, "test")
 	})
 	h(c)
@@ -50,33 +50,33 @@ func TestLogger(t *testing.T) {
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
-	h = Logger()(func(c echo.Context) error {
+	h = Logger()(func(c echox.Context) error {
 		return errors.New("error")
 	})
 	h(c)
 }
 
 func TestLoggerIPAddress(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	buf := new(bytes.Buffer)
 	e.Logger = &testLogger{output: buf}
 	ip := "127.0.0.1"
-	h := Logger()(func(c echo.Context) error {
+	h := Logger()(func(c echox.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 
 	// With X-Real-IP
-	req.Header.Add(echo.HeaderXRealIP, ip)
+	req.Header.Add(echox.HeaderXRealIP, ip)
 	h(c)
 	assert.Contains(t, buf.String(), ip)
 
 	// With X-Forwarded-For
 	buf.Reset()
-	req.Header.Del(echo.HeaderXRealIP)
-	req.Header.Add(echo.HeaderXForwardedFor, ip)
+	req.Header.Del(echox.HeaderXRealIP)
+	req.Header.Add(echox.HeaderXForwardedFor, ip)
 	h(c)
 	assert.Contains(t, buf.String(), ip)
 
@@ -88,7 +88,7 @@ func TestLoggerIPAddress(t *testing.T) {
 func TestLoggerTemplate(t *testing.T) {
 	buf := new(bytes.Buffer)
 
-	e := echo.New()
+	e := echox.New()
 	e.Use(LoggerWithConfig(LoggerConfig{
 		Format: `{"time":"${time_rfc3339_nano}","id":"${id}","remote_ip":"${remote_ip}","host":"${host}","user_agent":"${user_agent}",` +
 			`"method":"${method}","uri":"${uri}","status":${status}, "latency":${latency},` +
@@ -98,13 +98,13 @@ func TestLoggerTemplate(t *testing.T) {
 		Output: buf,
 	}))
 
-	e.GET("/users/:id", func(c echo.Context) error {
+	e.GET("/users/:id", func(c echox.Context) error {
 		return c.String(http.StatusOK, "Header Logged")
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/users/1?username=apagano-param&password=secret", nil)
 	req.RequestURI = "/"
-	req.Header.Add(echo.HeaderXRealIP, "127.0.0.1")
+	req.Header.Add(echox.HeaderXRealIP, "127.0.0.1")
 	req.Header.Add("Referer", "google.com")
 	req.Header.Add("User-Agent", "echo-tests-agent")
 	req.Header.Add("X-Custom-Header", "AAA-CUSTOM-VALUE")
@@ -146,7 +146,7 @@ func TestLoggerTemplate(t *testing.T) {
 func TestLoggerCustomTimestamp(t *testing.T) {
 	buf := new(bytes.Buffer)
 	customTimeFormat := "2006-01-02 15:04:05.00000"
-	e := echo.New()
+	e := echox.New()
 	e.Use(LoggerWithConfig(LoggerConfig{
 		Format: `{"time":"${time_custom}","id":"${id}","remote_ip":"${remote_ip}","host":"${host}","user_agent":"${user_agent}",` +
 			`"method":"${method}","uri":"${uri}","status":${status}, "latency":${latency},` +
@@ -157,7 +157,7 @@ func TestLoggerCustomTimestamp(t *testing.T) {
 		Output:           buf,
 	}))
 
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/", func(c echox.Context) error {
 		return c.String(http.StatusOK, "custom time stamp test")
 	})
 
@@ -177,13 +177,13 @@ func TestLoggerCustomTimestamp(t *testing.T) {
 func TestLoggerTemplateWithTimeUnixMilli(t *testing.T) {
 	buf := new(bytes.Buffer)
 
-	e := echo.New()
+	e := echox.New()
 	e.Use(LoggerWithConfig(LoggerConfig{
 		Format: `${time_unix_milli}`,
 		Output: buf,
 	}))
 
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/", func(c echox.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
@@ -200,13 +200,13 @@ func TestLoggerTemplateWithTimeUnixMilli(t *testing.T) {
 func TestLoggerTemplateWithTimeUnixMicro(t *testing.T) {
 	buf := new(bytes.Buffer)
 
-	e := echo.New()
+	e := echox.New()
 	e.Use(LoggerWithConfig(LoggerConfig{
 		Format: `${time_unix_micro}`,
 		Output: buf,
 	}))
 
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/", func(c echox.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
@@ -221,7 +221,7 @@ func TestLoggerTemplateWithTimeUnixMicro(t *testing.T) {
 }
 
 func BenchmarkLoggerWithConfig_withoutMapFields(b *testing.B) {
-	e := echo.New()
+	e := echox.New()
 
 	buf := new(bytes.Buffer)
 	mw := LoggerWithConfig(LoggerConfig{
@@ -230,8 +230,8 @@ func BenchmarkLoggerWithConfig_withoutMapFields(b *testing.B) {
 			`"latency_human":"${latency_human}","bytes_in":${bytes_in}, "path":"${path}", "referer":"${referer}",` +
 			`"bytes_out":${bytes_out}, "protocol":"${protocol}"}` + "\n",
 		Output: buf,
-	})(func(c echo.Context) error {
-		c.Request().Header.Set(echo.HeaderXRequestID, "123")
+	})(func(c echox.Context) error {
+		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
 		return c.String(http.StatusTeapot, "OK")
 	})
@@ -241,9 +241,9 @@ func BenchmarkLoggerWithConfig_withoutMapFields(b *testing.B) {
 	f.Add("multiple", "1")
 	f.Add("multiple", "2")
 	req := httptest.NewRequest(http.MethodPost, "/test?lang=en&checked=1&checked=2", strings.NewReader(f.Encode()))
-	req.Header.Set("Referer", "https://echo.labstack.com/")
+	req.Header.Set("Referer", "https://echox.labstack.com/")
 	req.Header.Set("User-Agent", "curl/7.68.0")
-	req.Header.Add(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.Header.Add(echox.HeaderContentType, echox.MIMEApplicationForm)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -257,7 +257,7 @@ func BenchmarkLoggerWithConfig_withoutMapFields(b *testing.B) {
 }
 
 func BenchmarkLoggerWithConfig_withMapFields(b *testing.B) {
-	e := echo.New()
+	e := echox.New()
 
 	buf := new(bytes.Buffer)
 	mw := LoggerWithConfig(LoggerConfig{
@@ -267,8 +267,8 @@ func BenchmarkLoggerWithConfig_withMapFields(b *testing.B) {
 			`"bytes_out":${bytes_out},"ch":"${header:X-Custom-Header}", "protocol":"${protocol}"` +
 			`"us":"${query:username}", "cf":"${form:csrf}", "Referer2":"${header:Referer}"}` + "\n",
 		Output: buf,
-	})(func(c echo.Context) error {
-		c.Request().Header.Set(echo.HeaderXRequestID, "123")
+	})(func(c echox.Context) error {
+		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
 		return c.String(http.StatusTeapot, "OK")
 	})
@@ -278,9 +278,9 @@ func BenchmarkLoggerWithConfig_withMapFields(b *testing.B) {
 	f.Add("multiple", "1")
 	f.Add("multiple", "2")
 	req := httptest.NewRequest(http.MethodPost, "/test?lang=en&checked=1&checked=2", strings.NewReader(f.Encode()))
-	req.Header.Set("Referer", "https://echo.labstack.com/")
+	req.Header.Set("Referer", "https://echox.labstack.com/")
 	req.Header.Set("User-Agent", "curl/7.68.0")
-	req.Header.Add(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.Header.Add(echox.HeaderContentType, echox.MIMEApplicationForm)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -294,17 +294,17 @@ func BenchmarkLoggerWithConfig_withMapFields(b *testing.B) {
 }
 
 func TestLoggerCustomTagFunc(t *testing.T) {
-	e := echo.New()
+	e := echox.New()
 	buf := new(bytes.Buffer)
 	e.Use(LoggerWithConfig(LoggerConfig{
 		Format: `{"method":"${method}",${custom}}` + "\n",
-		CustomTagFunc: func(c echo.Context, buf *bytes.Buffer) (int, error) {
+		CustomTagFunc: func(c echox.Context, buf *bytes.Buffer) (int, error) {
 			return buf.WriteString(`"tag":"my-value"`)
 		},
 		Output: buf,
 	}))
 
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/", func(c echox.Context) error {
 		return c.String(http.StatusOK, "custom time stamp test")
 	})
 

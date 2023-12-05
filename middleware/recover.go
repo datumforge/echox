@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/labstack/echo/v5"
+	"github.com/datumforge/echox"
 )
 
 // RecoverConfig defines the config for Recover middleware.
@@ -37,17 +37,17 @@ var DefaultRecoverConfig = RecoverConfig{
 
 // Recover returns a middleware which recovers from panics anywhere in the chain
 // and handles the control to the centralized HTTPErrorHandler.
-func Recover() echo.MiddlewareFunc {
+func Recover() echox.MiddlewareFunc {
 	return RecoverWithConfig(DefaultRecoverConfig)
 }
 
 // RecoverWithConfig returns a Recovery middleware with config or panics on invalid configuration.
-func RecoverWithConfig(config RecoverConfig) echo.MiddlewareFunc {
+func RecoverWithConfig(config RecoverConfig) echox.MiddlewareFunc {
 	return toMiddlewareOrPanic(config)
 }
 
 // ToMiddleware converts RecoverConfig to middleware or returns an error for invalid configuration
-func (config RecoverConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
+func (config RecoverConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	// Defaults
 	if config.Skipper == nil {
 		config.Skipper = DefaultRecoverConfig.Skipper
@@ -56,8 +56,8 @@ func (config RecoverConfig) ToMiddleware() (echo.MiddlewareFunc, error) {
 		config.StackSize = DefaultRecoverConfig.StackSize
 	}
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) (err error) {
+	return func(next echox.HandlerFunc) echox.HandlerFunc {
+		return func(c echox.Context) (err error) {
 			if config.Skipper(c) {
 				return next(c)
 			}
