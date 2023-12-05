@@ -265,7 +265,7 @@ func New() *Echo {
 
 // NewContext returns a new Context instance.
 //
-// Note: both request and response can be left to nil as echox.ServeHTTP will call c.Reset(req,resp) anyway
+// Note: both request and response can be left to nil as Echo.ServeHTTP will call c.Reset(req,resp) anyway
 // these arguments are useful when creating context for tests and cases like that.
 func (e *Echo) NewContext(r *http.Request, w http.ResponseWriter) Context {
 	var c Context
