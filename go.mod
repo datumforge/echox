@@ -3,7 +3,7 @@ module github.com/datumforge/echox
 go 1.22.1
 
 require (
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/time v0.5.0
 )
