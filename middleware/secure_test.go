@@ -5,8 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestSecure(t *testing.T) {
@@ -38,6 +39,7 @@ func TestSecureWithConfig(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(echox.HeaderXForwardedProto, "https")
+
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	mw, err := SecureConfig{
@@ -60,7 +62,6 @@ func TestSecureWithConfig(t *testing.T) {
 	assert.Equal(t, "default-src 'self'", rec.Header().Get(echox.HeaderContentSecurityPolicy))
 	assert.Equal(t, "", rec.Header().Get(echox.HeaderContentSecurityPolicyReportOnly))
 	assert.Equal(t, "origin", rec.Header().Get(echox.HeaderReferrerPolicy))
-
 }
 
 func TestSecureWithConfig_CSPReportOnly(t *testing.T) {
@@ -72,6 +73,7 @@ func TestSecureWithConfig_CSPReportOnly(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(echox.HeaderXForwardedProto, "https")
+
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -105,6 +107,7 @@ func TestSecureWithConfig_HSTSPreloadEnabled(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	// Custom, with preload option enabled
 	req.Header.Set(echox.HeaderXForwardedProto, "https")
+
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -115,7 +118,6 @@ func TestSecureWithConfig_HSTSPreloadEnabled(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "max-age=3600; includeSubdomains; preload", rec.Header().Get(echox.HeaderStrictTransportSecurity))
-
 }
 
 func TestSecureWithConfig_HSTSExcludeSubdomains(t *testing.T) {
@@ -129,6 +131,7 @@ func TestSecureWithConfig_HSTSExcludeSubdomains(t *testing.T) {
 
 	// Custom, with preload option enabled and subdomains excluded
 	req.Header.Set(echox.HeaderXForwardedProto, "https")
+
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 

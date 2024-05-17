@@ -20,28 +20,35 @@ func captureTokens(pattern *regexp.Regexp, input string) *strings.Replacer {
 	if groups == nil {
 		return nil
 	}
+
 	values := groups[0][1:]
 	replace := make([]string, 2*len(values))
+
 	for i, v := range values {
 		j := 2 * i
 		replace[j] = "$" + strconv.Itoa(i+1)
 		replace[j+1] = v
 	}
+
 	return strings.NewReplacer(replace...)
 }
 
 func rewriteRulesRegex(rewrite map[string]string) map[*regexp.Regexp]string {
 	// Initialize
 	rulesRegex := map[*regexp.Regexp]string{}
+
 	for k, v := range rewrite {
 		k = regexp.QuoteMeta(k)
 		k = strings.ReplaceAll(k, `\*`, "(.*?)")
+
 		if strings.HasPrefix(k, `\^`) {
 			k = strings.ReplaceAll(k, `\^`, "^")
 		}
-		k = k + "$"
+
+		k += "$" // Fix: replace k = k + "$" with k += "$"
 		rulesRegex[regexp.MustCompile(k)] = v
 	}
+
 	return rulesRegex
 }
 
@@ -58,9 +65,11 @@ func rewriteURL(rewriteRegex map[*regexp.Regexp]string, req *http.Request) error
 		if req.URL.Scheme != "" {
 			prefix = req.URL.Scheme + "://"
 		}
+
 		if req.URL.Host != "" {
 			prefix += req.URL.Host // host or host:port
 		}
+
 		if prefix != "" {
 			rawURI = strings.TrimPrefix(rawURI, prefix)
 		}
@@ -72,11 +81,13 @@ func rewriteURL(rewriteRegex map[*regexp.Regexp]string, req *http.Request) error
 			if err != nil {
 				return err
 			}
+
 			req.URL = url
 
 			return nil // rewrite only once
 		}
 	}
+
 	return nil
 }
 
@@ -90,5 +101,6 @@ func toMiddlewareOrPanic(config echox.MiddlewareConfigurator) echox.MiddlewareFu
 	if err != nil {
 		panic(err)
 	}
+
 	return mw
 }

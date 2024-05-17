@@ -33,9 +33,11 @@ func (config RequestIDConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.Generator == nil {
 		config.Generator = createRandomStringGenerator(32)
 	}
+
 	if config.TargetHeader == "" {
 		config.TargetHeader = echox.HeaderXRequestID
 	}
@@ -48,11 +50,14 @@ func (config RequestIDConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 			req := c.Request()
 			res := c.Response()
+
 			rid := req.Header.Get(config.TargetHeader)
 			if rid == "" {
 				rid = config.Generator()
 			}
+
 			res.Header().Set(config.TargetHeader, rid)
+
 			if config.RequestIDHandler != nil {
 				config.RequestIDHandler(c, rid)
 			}

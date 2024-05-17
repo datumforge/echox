@@ -45,6 +45,7 @@ func (config MethodOverrideConfig) ToMiddleware() (echox.MiddlewareFunc, error) 
 	if config.Skipper == nil {
 		config.Skipper = DefaultMethodOverrideConfig.Skipper
 	}
+
 	if config.Getter == nil {
 		config.Getter = DefaultMethodOverrideConfig.Getter
 	}
@@ -62,6 +63,7 @@ func (config MethodOverrideConfig) ToMiddleware() (echox.MiddlewareFunc, error) 
 					req.Method = m
 				}
 			}
+
 			return next(c)
 		}
 	}, nil

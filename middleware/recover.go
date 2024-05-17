@@ -52,6 +52,7 @@ func (config RecoverConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultRecoverConfig.Skipper
 	}
+
 	if config.StackSize == 0 {
 		config.StackSize = DefaultRecoverConfig.StackSize
 	}
@@ -67,18 +68,22 @@ func (config RecoverConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					if r == http.ErrAbortHandler {
 						panic(r)
 					}
+
 					tmpErr, ok := r.(error)
 					if !ok {
 						tmpErr = fmt.Errorf("%v", r)
 					}
+
 					if !config.DisablePrintStack {
 						stack := make([]byte, config.StackSize)
 						length := runtime.Stack(stack, !config.DisableStackAll)
 						tmpErr = fmt.Errorf("[PANIC RECOVER] %w %s", tmpErr, stack[:length])
 					}
+
 					err = tmpErr
 				}
 			}()
+
 			return next(c)
 		}
 	}, nil

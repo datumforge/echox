@@ -5,8 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestAddTrailingSlashWithConfig(t *testing.T) {
@@ -63,6 +64,7 @@ func TestAddTrailingSlashWithConfig(t *testing.T) {
 			expectLocation: []string{`/`},
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
 			e := echox.New()
@@ -83,6 +85,7 @@ func TestAddTrailingSlashWithConfig(t *testing.T) {
 
 			assert.Equal(t, tc.expectPath, req.URL.Path)
 			assert.Equal(t, tc.expectLocation, rec.Header()[echox.HeaderLocation])
+
 			if tc.expectStatus == 0 {
 				assert.Equal(t, http.StatusMovedPermanently, rec.Code)
 			} else {
@@ -116,6 +119,7 @@ func TestAddTrailingSlash(t *testing.T) {
 			expectLocation: nil,
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
 			e := echox.New()
@@ -199,6 +203,7 @@ func TestRemoveTrailingSlashWithConfig(t *testing.T) {
 			expectLocation: []string{`/`},
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
 			e := echox.New()
@@ -219,6 +224,7 @@ func TestRemoveTrailingSlashWithConfig(t *testing.T) {
 
 			assert.Equal(t, tc.expectPath, req.URL.Path)
 			assert.Equal(t, tc.expectLocation, rec.Header()[echox.HeaderLocation])
+
 			if tc.expectStatus == 0 {
 				assert.Equal(t, http.StatusMovedPermanently, rec.Code)
 			} else {
@@ -255,6 +261,7 @@ func TestRemoveTrailingSlash(t *testing.T) {
 			expectPath: "",
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.whenURL, func(t *testing.T) {
 			e := echox.New()

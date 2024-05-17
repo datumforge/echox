@@ -171,12 +171,15 @@ func NewRouter(config RouterConfig) *DefaultRouter {
 	if config.NotFoundHandler != nil {
 		r.notFoundHandler = config.NotFoundHandler
 	}
+
 	if config.MethodNotAllowedHandler != nil {
 		r.methodNotAllowedHandler = config.MethodNotAllowedHandler
 	}
+
 	if config.OptionsMethodHandler != nil {
 		r.optionsMethodHandler = config.OptionsMethodHandler
 	}
+
 	return r
 }
 
@@ -267,12 +270,14 @@ func (m *routeMethods) set(method string, r *routeMethod) {
 		if m.anyOther == nil {
 			m.anyOther = make(map[string]*routeMethod)
 		}
+
 		if r.handler == nil {
 			delete(m.anyOther, method)
 		} else {
 			m.anyOther[method] = r
 		}
 	}
+
 	m.updateAllowHeader()
 }
 
@@ -313,44 +318,55 @@ func (m *routeMethods) updateAllowHeader() {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodConnect)
 	}
+
 	if m.delete != nil {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodDelete)
 	}
+
 	if m.get != nil {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodGet)
 	}
+
 	if m.head != nil {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodHead)
 	}
+
 	if m.patch != nil {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodPatch)
 	}
+
 	if m.post != nil {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodPost)
 	}
+
 	if m.propfind != nil {
 		buf.WriteString(", PROPFIND")
 	}
+
 	if m.put != nil {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodPut)
 	}
+
 	if m.trace != nil {
 		buf.WriteString(", ")
 		buf.WriteString(http.MethodTrace)
 	}
+
 	if m.report != nil {
 		buf.WriteString(", REPORT")
 	}
+
 	for method := range m.anyOther { // for simplicity, we use map and therefore order is not deterministic here
 		buf.WriteString(", ")
 		buf.WriteString(method)
 	}
+
 	m.allowHeader = buf.String()
 }
 
@@ -367,7 +383,6 @@ func (m *routeMethods) isHandler() bool {
 		m.trace != nil ||
 		m.report != nil ||
 		len(m.anyOther) != 0
-	// RouteNotFound/404 is not considered as a handler
 }
 
 // Routes returns all registered routes
@@ -385,19 +400,23 @@ func (r *DefaultRouter) Remove(method string, path string) error {
 	if path == "" {
 		path = "/"
 	}
+
 	if path[0] != '/' {
 		path = "/" + path
 	}
 
 	var nodeToRemove *node
+
 	prefixLen := 0
+
 	for {
 		if currentNode.originalPath == path && currentNode.isHandler {
 			nodeToRemove = currentNode
 			break
 		}
+
 		if currentNode.kind == staticKind {
-			prefixLen = prefixLen + len(currentNode.prefix)
+			prefixLen += len(currentNode.prefix)
 		} else {
 			prefixLen = len(currentNode.originalPath)
 		}
@@ -432,34 +451,41 @@ func (r *DefaultRouter) Remove(method string, path string) error {
 	if mh := nodeToRemove.methods.find(method); mh == nil {
 		return errors.New("could not find route to remove by given path and method")
 	}
+
 	nodeToRemove.setHandler(method, nil)
 
 	var rIndex int
+
 	for i, rr := range r.routes {
 		if rr.Method() == method && rr.Path() == path {
 			rIndex = i
 			break
 		}
 	}
+
 	r.routes = append(r.routes[:rIndex], r.routes[rIndex+1:]...)
 
 	if !nodeToRemove.isHandler && nodeToRemove.isLeaf {
 		// TODO: if !nodeToRemove.isLeaf and has at least 2 children merge paths for remaining nodes?
 		current := nodeToRemove
+
 		for {
 			parent := current.parent
 			if parent == nil {
 				break
 			}
+
 			switch current.kind {
 			case staticKind:
 				var index int
+
 				for i, c := range parent.staticChildren {
 					if c == current {
 						index = i
 						break
 					}
 				}
+
 				parent.staticChildren = append(parent.staticChildren[:index], parent.staticChildren[index+1:]...)
 			case paramKind:
 				parent.paramChild = nil
@@ -471,6 +497,7 @@ func (r *DefaultRouter) Remove(method string, path string) error {
 			if !parent.isLeaf || parent.isHandler {
 				break
 			}
+
 			current = parent
 		}
 	}
@@ -504,9 +531,11 @@ func (r *DefaultRouter) Add(routable Routable) (RouteInfo, error) {
 	if route.Handler == nil {
 		return nil, newAddRouteError(route, errors.New("adding route without handler function"))
 	}
+
 	method := route.Method
 	path := route.Path
 	h := applyMiddleware(route.Handler, route.Middlewares...)
+
 	if !r.allowOverwritingRoute {
 		for _, rr := range r.routes {
 			if route.Method == rr.Method() && route.Path == rr.Path() {
@@ -518,25 +547,33 @@ func (r *DefaultRouter) Add(routable Routable) (RouteInfo, error) {
 	if path == "" {
 		path = "/"
 	}
+
 	if path[0] != '/' {
 		path = "/" + path
 	}
+
 	paramNames := make([]string, 0)
 	originalPath := path
 	wasAdded := false
+
 	var ri RouteInfo
+
 	for i, lcpIndex := 0, len(path); i < lcpIndex; i++ {
 		if path[i] == paramLabel {
 			if i > 0 && path[i-1] == '\\' {
 				path = path[:i-1] + path[i:]
 				i--
 				lcpIndex--
+
 				continue
 			}
+
 			j := i + 1
 
 			r.insert(staticKind, path[:i], method, routeMethod{routeInfo: &routeInfo{method: method}})
+
 			for ; i < lcpIndex && path[i] != '/'; i++ {
+				// intentionally empty
 			}
 
 			paramNames = append(paramNames, path[j:i])
@@ -552,13 +589,16 @@ func (r *DefaultRouter) Add(routable Routable) (RouteInfo, error) {
 					orgRouteInfo: ri,
 				}
 				r.insert(paramKind, path[:i], method, rm)
+
 				wasAdded = true
+
 				break
 			} else {
 				r.insert(paramKind, path[:i], method, routeMethod{routeInfo: &routeInfo{method: method}})
 			}
 		} else if path[i] == anyLabel {
 			r.insert(staticKind, path[:i], method, routeMethod{routeInfo: &routeInfo{method: method}})
+
 			paramNames = append(paramNames, "*")
 			ri = routable.ToRouteInfo(paramNames)
 			rm := routeMethod{
@@ -567,7 +607,9 @@ func (r *DefaultRouter) Add(routable Routable) (RouteInfo, error) {
 				orgRouteInfo: ri,
 			}
 			r.insert(anyKind, path[:i+1], method, rm)
+
 			wasAdded = true
+
 			break
 		}
 	}
@@ -594,6 +636,7 @@ func (r *DefaultRouter) storeRouteInfo(ri RouteInfo) {
 			return
 		}
 	}
+
 	r.routes = append(r.routes, ri)
 }
 
@@ -611,21 +654,26 @@ func (r *DefaultRouter) insert(t kind, path string, method string, ri routeMetho
 		if searchLen < max {
 			max = searchLen
 		}
+
 		for ; lcpLen < max && search[lcpLen] == currentNode.prefix[lcpLen]; lcpLen++ {
+			// intentionally empty
 		}
 
-		if lcpLen == 0 {
+		switch {
+		case lcpLen == 0:
 			// At root node
 			currentNode.label = search[0]
 			currentNode.prefix = search
+
 			if ri.handler != nil {
 				currentNode.kind = t
 				currentNode.setHandler(method, &ri)
 				currentNode.paramsCount = len(ri.params)
 				currentNode.originalPath = ri.path
 			}
+
 			currentNode.isLeaf = currentNode.staticChildren == nil && currentNode.paramChild == nil && currentNode.anyChild == nil
-		} else if lcpLen < prefixLen {
+		case lcpLen < prefixLen:
 			// Split node into two before we insert new node.
 			// This happens when we are inserting path that is submatch of any existing inserted paths.
 			// For example, we have node `/test` and now are about to insert `/te/*`. In that case
@@ -647,13 +695,14 @@ func (r *DefaultRouter) insert(t kind, path string, method string, ri routeMetho
 			for _, child := range currentNode.staticChildren {
 				child.parent = n
 			}
+
 			if currentNode.paramChild != nil {
 				currentNode.paramChild.parent = n
 			}
+
 			if currentNode.anyChild != nil {
 				currentNode.anyChild.parent = n
 			}
-
 			// Reset parent node
 			currentNode.kind = staticKind
 			currentNode.label = currentNode.prefix[0]
@@ -666,7 +715,6 @@ func (r *DefaultRouter) insert(t kind, path string, method string, ri routeMetho
 			currentNode.anyChild = nil
 			currentNode.isLeaf = false
 			currentNode.isHandler = false
-
 			// Only Static children could reach here
 			currentNode.addStaticChild(n)
 
@@ -688,9 +736,11 @@ func (r *DefaultRouter) insert(t kind, path string, method string, ri routeMetho
 				// Only Static children could reach here
 				currentNode.addStaticChild(n)
 			}
+
 			currentNode.isLeaf = currentNode.staticChildren == nil && currentNode.paramChild == nil && currentNode.anyChild == nil
-		} else if lcpLen < searchLen {
+		case lcpLen < searchLen:
 			search = search[lcpLen:]
+
 			c := currentNode.findChildWithLabel(search[0])
 			if c != nil {
 				// Go deeper
@@ -703,6 +753,7 @@ func (r *DefaultRouter) insert(t kind, path string, method string, ri routeMetho
 				n.setHandler(method, &ri)
 				n.paramsCount = len(ri.params)
 			}
+
 			switch t {
 			case staticKind:
 				currentNode.addStaticChild(n)
@@ -711,8 +762,9 @@ func (r *DefaultRouter) insert(t kind, path string, method string, ri routeMetho
 			case anyKind:
 				currentNode.anyChild = n
 			}
+
 			currentNode.isLeaf = currentNode.staticChildren == nil && currentNode.paramChild == nil && currentNode.anyChild == nil
-		} else {
+		default:
 			// Node already exists
 			if ri.handler != nil {
 				currentNode.setHandler(method, &ri)
@@ -720,7 +772,8 @@ func (r *DefaultRouter) insert(t kind, path string, method string, ri routeMetho
 				currentNode.originalPath = ri.path
 			}
 		}
-		return
+
+		break
 	}
 }
 
@@ -751,6 +804,7 @@ func (n *node) findStaticChild(l byte) *node {
 			return c
 		}
 	}
+
 	return nil
 }
 
@@ -758,12 +812,15 @@ func (n *node) findChildWithLabel(l byte) *node {
 	if c := n.findStaticChild(l); c != nil {
 		return c
 	}
+
 	if l == paramLabel {
 		return n.paramChild
 	}
+
 	if l == anyLabel {
 		return n.anyChild
 	}
+
 	return nil
 }
 
@@ -833,12 +890,14 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 
 	req := c.Request()
 	path := req.URL.Path
+
 	if !r.useEscapedPathForRouting && req.URL.RawPath != "" {
 		// Difference between URL.RawPath and URL.Path is:
 		//  * URL.Path is where request path is stored. Value is stored in decoded form: /%47%6f%2f becomes /Go/.
 		//  * URL.RawPath is an optional field which only gets set if the default encoding is different from Path.
 		path = req.URL.RawPath
 	}
+
 	var (
 		currentNode           = r.tree // root as current node
 		previousBestMatchNode *node
@@ -882,7 +941,9 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 			searchIndex -= len((*pathParams)[paramIndex].Value)
 			(*pathParams)[paramIndex].Value = ""
 		}
+
 		search = path[searchIndex:]
+
 		return
 	}
 
@@ -906,29 +967,27 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 			if searchLen < max {
 				max = searchLen
 			}
+
 			for ; lcpLen < max && search[lcpLen] == currentNode.prefix[lcpLen]; lcpLen++ {
+				// intentionally emptys
 			}
 		}
 
 		if lcpLen != prefixLen {
 			// No matching prefix, let's backtrack to the first possible alternative node of the decision path
 			nk, ok := backtrackToNextNodeKind(staticKind)
-			if !ok {
+			if !ok { // nolint: gocritic
 				break // No other possibilities on the decision path, handler will be whatever context is reset to.
 			} else if nk == paramKind {
 				goto Param
-				// NOTE: this case (backtracking from static node to previous any node) can not happen by current any matching logic. Any node is end of search currently
-				//} else if nk == anyKind {
-				//	goto Any
 			} else {
-				// Not found (this should never be possible for static node we are looking currently)
 				break
 			}
 		}
 
 		// The full prefix has matched, remove the prefix from the remaining search
 		search = search[lcpLen:]
-		searchIndex = searchIndex + lcpLen
+		searchIndex += lcpLen
 
 		// Finish routing if is no request path remaining to search
 		if search == "" {
@@ -939,6 +998,7 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 				if previousBestMatchNode == nil {
 					previousBestMatchNode = currentNode
 				}
+
 				if h := currentNode.methods.find(req.Method); h != nil {
 					matchedRouteMethod = h
 					break
@@ -969,13 +1029,14 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 				i = l
 			} else {
 				for ; i < l && search[i] != '/'; i++ {
+					// intentionally empty
 				}
 			}
 
 			(*pathParams)[paramIndex].Value = search[:i]
 			paramIndex++
 			search = search[i:]
-			searchIndex = searchIndex + i
+			searchIndex += i
 			continue
 		}
 
@@ -1006,7 +1067,7 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 
 		// Let's backtrack to the first possible alternative node of the decision path
 		nk, ok := backtrackToNextNodeKind(anyKind)
-		if !ok {
+		if !ok { // nolint: gocritic
 			break // No other possibilities on the decision path
 		} else if nk == paramKind {
 			goto Param
@@ -1024,12 +1085,16 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 		c.SetRawPathParams(pathParams)
 		c.SetPath("")
 		c.SetRouteInfo(notFoundRouteInfo)
+
 		return r.notFoundHandler // nothing matched at all with given path
 	}
 
 	var rHandler HandlerFunc
+
 	var rPath string
+
 	var rInfo RouteInfo
+
 	if matchedRouteMethod != nil {
 		rHandler = matchedRouteMethod.handler
 		rPath = matchedRouteMethod.routeInfo.path
@@ -1041,6 +1106,7 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 
 		rPath = currentNode.originalPath
 		rInfo = notFoundRouteInfo
+
 		if currentNode.methods.notFoundHandler != nil {
 			matchedRouteMethod = currentNode.methods.notFoundHandler
 
@@ -1051,16 +1117,19 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 			rInfo = methodNotAllowedRouteInfo
 
 			c.Set(ContextKeyHeaderAllow, currentNode.methods.allowHeader)
+
 			rHandler = r.methodNotAllowedHandler
 			if req.Method == http.MethodOptions {
 				rHandler = r.optionsMethodHandler
 			}
 		}
 	}
+
 	c.SetPath(rPath)
 	c.SetRouteInfo(rInfo)
 
 	*pathParams = (*pathParams)[0:currentNode.paramsCount]
+
 	if matchedRouteMethod != nil {
 		for i, name := range matchedRouteMethod.params {
 			(*pathParams)[i].Name = name
@@ -1076,6 +1145,7 @@ func (r *DefaultRouter) Route(c RoutableContext) HandlerFunc {
 			}
 		}
 	}
+
 	c.SetRawPathParams(pathParams)
 
 	return rHandler
@@ -1088,5 +1158,6 @@ func (p PathParams) Get(name string, defaultValue string) string {
 			return param.Value
 		}
 	}
+
 	return defaultValue
 }

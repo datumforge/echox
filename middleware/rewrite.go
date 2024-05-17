@@ -36,6 +36,7 @@ type RewriteConfig struct {
 func Rewrite(rules map[string]string) echox.MiddlewareFunc {
 	c := RewriteConfig{}
 	c.Rules = rules
+
 	return RewriteWithConfig(c)
 }
 
@@ -51,6 +52,7 @@ func (config RewriteConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.Rules == nil && config.RegexRules == nil {
 		return nil, errors.New("echo rewrite middleware requires url path rewrite rules or regex rules")
 	}
@@ -58,6 +60,7 @@ func (config RewriteConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.RegexRules == nil {
 		config.RegexRules = make(map[*regexp.Regexp]string)
 	}
+
 	for k, v := range rewriteRulesRegex(config.Rules) {
 		config.RegexRules[k] = v
 	}
@@ -71,6 +74,7 @@ func (config RewriteConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if err := rewriteURL(config.RegexRules, c.Request()); err != nil {
 				return err
 			}
+
 			return next(c)
 		}
 	}, nil

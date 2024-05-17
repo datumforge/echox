@@ -10,8 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestCreateExtractors(t *testing.T) {
@@ -95,7 +96,9 @@ func TestCreateExtractors(t *testing.T) {
 			if tc.givenRequest != nil {
 				req = tc.givenRequest()
 			}
+
 			rec := httptest.NewRecorder()
+
 			c := e.NewContext(req, rec).(echox.ServableContext)
 			if tc.givenPathParams != nil {
 				c.SetRawPathParams(&tc.givenPathParams)
@@ -106,16 +109,19 @@ func TestCreateExtractors(t *testing.T) {
 				assert.EqualError(t, err, tc.expectCreateError)
 				return
 			}
+
 			assert.NoError(t, err)
 
 			for _, e := range extractors {
 				values, source, eErr := e(c)
 				assert.Equal(t, tc.expectValues, values)
 				assert.Equal(t, tc.expectSource, source)
+
 				if tc.expectError != "" {
 					assert.EqualError(t, eErr, tc.expectError)
 					return
 				}
+
 				assert.NoError(t, eErr)
 			}
 		})
@@ -231,6 +237,7 @@ func TestValuesFromHeader(t *testing.T) {
 			if tc.givenRequest != nil {
 				tc.givenRequest(req)
 			}
+
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -239,6 +246,7 @@ func TestValuesFromHeader(t *testing.T) {
 			values, source, err := extractor(c)
 			assert.Equal(t, tc.expectValues, values)
 			assert.Equal(t, ExtractorSourceHeader, source)
+
 			if tc.expectError != "" {
 				assert.EqualError(t, err, tc.expectError)
 			} else {
@@ -301,6 +309,7 @@ func TestValuesFromQuery(t *testing.T) {
 			values, source, err := extractor(c)
 			assert.Equal(t, tc.expectValues, values)
 			assert.Equal(t, ExtractorSourceQuery, source)
+
 			if tc.expectError != "" {
 				assert.EqualError(t, err, tc.expectError)
 			} else {
@@ -316,6 +325,7 @@ func TestValuesFromParam(t *testing.T) {
 		{Name: "gid", Value: "456"},
 		{Name: "gid", Value: "789"},
 	}
+
 	examplePathParams20 := make(echox.PathParams, 0)
 	for i := 1; i < 25; i++ {
 		examplePathParams20 = append(examplePathParams20, echox.PathParam{Name: "id", Value: fmt.Sprintf("%v", i)})
@@ -371,6 +381,7 @@ func TestValuesFromParam(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			rec := httptest.NewRecorder()
+
 			c := e.NewContext(req, rec).(echox.ServableContext)
 			if tc.givenPathParams != nil {
 				c.SetRawPathParams(&tc.givenPathParams)
@@ -381,6 +392,7 @@ func TestValuesFromParam(t *testing.T) {
 			values, source, err := extractor(c)
 			assert.Equal(t, tc.expectValues, values)
 			assert.Equal(t, ExtractorSourcePathParam, source)
+
 			if tc.expectError != "" {
 				assert.EqualError(t, err, tc.expectError)
 			} else {
@@ -454,6 +466,7 @@ func TestValuesFromCookie(t *testing.T) {
 			if tc.givenRequest != nil {
 				tc.givenRequest(req)
 			}
+
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -462,6 +475,7 @@ func TestValuesFromCookie(t *testing.T) {
 			values, source, err := extractor(c)
 			assert.Equal(t, tc.expectValues, values)
 			assert.Equal(t, ExtractorSourceCookie, source)
+
 			if tc.expectError != "" {
 				assert.EqualError(t, err, tc.expectError)
 			} else {
@@ -476,6 +490,7 @@ func TestValuesFromForm(t *testing.T) {
 		f := make(url.Values)
 		f.Set("name", "Jon Snow")
 		f.Set("emails[]", "jon@labstack.com")
+
 		if mod != nil {
 			mod(&f)
 		}
@@ -489,11 +504,13 @@ func TestValuesFromForm(t *testing.T) {
 		f := make(url.Values)
 		f.Set("name", "Jon Snow")
 		f.Set("emails[]", "jon@labstack.com")
+
 		if mod != nil {
 			mod(&f)
 		}
 
 		req := httptest.NewRequest(http.MethodGet, "/?"+f.Encode(), nil)
+
 		return req
 	}
 
@@ -502,6 +519,7 @@ func TestValuesFromForm(t *testing.T) {
 		w := multipart.NewWriter(&b)
 		w.WriteField("name", "Jon Snow")
 		w.WriteField("emails[]", "jon@labstack.com")
+
 		if mod != nil {
 			mod(w)
 		}
@@ -593,6 +611,7 @@ func TestValuesFromForm(t *testing.T) {
 			values, source, err := extractor(c)
 			assert.Equal(t, tc.expectValues, values)
 			assert.Equal(t, ExtractorSourceForm, source)
+
 			if tc.expectError != "" {
 				assert.EqualError(t, err, tc.expectError)
 			} else {

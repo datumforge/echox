@@ -13,8 +13,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestLogger(t *testing.T) {
@@ -169,6 +170,7 @@ func TestLoggerCustomTimestamp(t *testing.T) {
 	if err := json.Unmarshal(buf.Bytes(), &objs); err != nil {
 		panic(err)
 	}
+
 	loggedTime := *(*string)(unsafe.Pointer(objs["time"]))
 	_, err := time.Parse(customTimeFormat, loggedTime)
 	assert.Error(t, err)
@@ -233,6 +235,7 @@ func BenchmarkLoggerWithConfig_withoutMapFields(b *testing.B) {
 	})(func(c echox.Context) error {
 		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
+
 		return c.String(http.StatusTeapot, "OK")
 	})
 
@@ -270,6 +273,7 @@ func BenchmarkLoggerWithConfig_withMapFields(b *testing.B) {
 	})(func(c echox.Context) error {
 		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
+
 		return c.String(http.StatusTeapot, "OK")
 	})
 

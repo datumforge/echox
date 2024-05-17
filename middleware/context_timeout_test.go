@@ -10,12 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestContextTimeoutSkipper(t *testing.T) {
 	t.Parallel()
+
 	m := ContextTimeoutWithConfig(ContextTimeoutConfig{
 		Skipper: func(context echox.Context) bool {
 			return true
@@ -50,6 +52,7 @@ func TestContextTimeoutWithTimeout0(t *testing.T) {
 
 func TestContextTimeoutErrorOutInHandler(t *testing.T) {
 	t.Parallel()
+
 	m := ContextTimeoutWithConfig(ContextTimeoutConfig{
 		// Timeout has to be defined or the whole flow for timeout middleware will be skipped
 		Timeout: 10 * time.Millisecond,
@@ -77,6 +80,7 @@ func TestContextTimeoutErrorOutInHandler(t *testing.T) {
 
 func TestContextTimeoutSuccessfulRequest(t *testing.T) {
 	t.Parallel()
+
 	m := ContextTimeoutWithConfig(ContextTimeoutConfig{
 		// Timeout has to be defined or the whole flow for timeout middleware will be skipped
 		Timeout: 10 * time.Millisecond,
@@ -99,9 +103,11 @@ func TestContextTimeoutSuccessfulRequest(t *testing.T) {
 
 func TestContextTimeoutTestRequestClone(t *testing.T) {
 	t.Parallel()
+
 	req := httptest.NewRequest(http.MethodPost, "/uri?query=value", strings.NewReader(url.Values{"form": {"value"}}.Encode()))
 	req.AddCookie(&http.Cookie{Name: "cookie", Value: "value"})
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	rec := httptest.NewRecorder()
 
 	m := ContextTimeoutWithConfig(ContextTimeoutConfig{
@@ -127,6 +133,7 @@ func TestContextTimeoutTestRequestClone(t *testing.T) {
 
 		// Query string
 		assert.EqualValues(t, "value", c.Request().URL.Query()["query"][0])
+
 		return nil
 	})(c)
 
@@ -151,6 +158,7 @@ func TestContextTimeoutWithDefaultErrorMessage(t *testing.T) {
 		if err := sleepWithContext(c.Request().Context(), time.Duration(80*time.Millisecond)); err != nil {
 			return err
 		}
+
 		return c.String(http.StatusOK, "Hello, World!")
 	})(c)
 
@@ -171,8 +179,10 @@ func TestContextTimeoutCanHandleContextDeadlineOnNextHandler(t *testing.T) {
 					Message: "Timeout! change me",
 				}
 			}
+
 			return err
 		}
+
 		return nil
 	}
 
@@ -191,7 +201,6 @@ func TestContextTimeoutCanHandleContextDeadlineOnNextHandler(t *testing.T) {
 	err := m(func(c echox.Context) error {
 		// NOTE: Very short periods are not reliable for tests due to Go routine scheduling and the unpredictable order
 		// for 1) request and 2) time goroutine. For most OS this works as expected, but MacOS seems most flaky.
-
 		if err := sleepWithContext(c.Request().Context(), 100*time.Millisecond); err != nil {
 			return err
 		}
@@ -200,6 +209,7 @@ func TestContextTimeoutCanHandleContextDeadlineOnNextHandler(t *testing.T) {
 		if _, ok := c.Request().Context().Deadline(); !ok {
 			assert.Fail(t, "No timeout set on Request Context")
 		}
+
 		return c.String(http.StatusOK, "Hello, World!")
 	})(c)
 

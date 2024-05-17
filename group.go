@@ -70,6 +70,7 @@ func (g *Group) TRACE(path string, h HandlerFunc, m ...MiddlewareFunc) RouteInfo
 func (g *Group) Any(path string, handler HandlerFunc, middleware ...MiddlewareFunc) Routes {
 	errs := make([]error, 0)
 	ris := make(Routes, 0)
+
 	for _, m := range methods {
 		ri, err := g.AddRoute(Route{
 			Method:      m,
@@ -81,11 +82,14 @@ func (g *Group) Any(path string, handler HandlerFunc, middleware ...MiddlewareFu
 			errs = append(errs, err)
 			continue
 		}
+
 		ris = append(ris, ri)
 	}
+
 	if len(errs) > 0 {
 		panic(errs) // this is how `v4` handles errors. `v5` has methods to have panic-free usage
 	}
+
 	return ris
 }
 
@@ -93,6 +97,7 @@ func (g *Group) Any(path string, handler HandlerFunc, middleware ...MiddlewareFu
 func (g *Group) Match(methods []string, path string, handler HandlerFunc, middleware ...MiddlewareFunc) Routes {
 	errs := make([]error, 0)
 	ris := make(Routes, 0)
+
 	for _, m := range methods {
 		ri, err := g.AddRoute(Route{
 			Method:      m,
@@ -104,11 +109,14 @@ func (g *Group) Match(methods []string, path string, handler HandlerFunc, middle
 			errs = append(errs, err)
 			continue
 		}
+
 		ris = append(ris, ri)
 	}
+
 	if len(errs) > 0 {
 		panic(errs) // this is how `v4` handles errors. `v5` has methods to have panic-free usage
 	}
+
 	return ris
 }
 
@@ -122,6 +130,7 @@ func (g *Group) Group(prefix string, middleware ...MiddlewareFunc) (sg *Group) {
 	m = append(m, middleware...)
 	sg = g.echo.Group(g.prefix+prefix, m...)
 	sg.host = g.host
+
 	return
 }
 
@@ -154,6 +163,7 @@ func (g *Group) File(path, file string, middleware ...MiddlewareFunc) RouteInfo 
 	handler := func(c Context) error {
 		return c.File(file)
 	}
+
 	return g.Add(http.MethodGet, path, handler, middleware...)
 }
 
@@ -175,6 +185,7 @@ func (g *Group) Add(method, path string, handler HandlerFunc, middleware ...Midd
 	if err != nil {
 		panic(err) // this is how `v4` handles errors. `v5` has methods to have panic-free usage
 	}
+
 	return ri
 }
 

@@ -139,9 +139,11 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultCORSConfig.Skipper
 	}
+
 	if len(config.AllowOrigins) == 0 {
 		config.AllowOrigins = DefaultCORSConfig.AllowOrigins
 	}
+
 	hasCustomAllowMethods := true
 	if len(config.AllowMethods) == 0 {
 		hasCustomAllowMethods = false
@@ -149,6 +151,7 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	}
 
 	allowOriginPatterns := []string{}
+
 	for _, origin := range config.AllowOrigins {
 		pattern := regexp.QuoteMeta(origin)
 		pattern = strings.ReplaceAll(pattern, "\\*", ".*")
@@ -186,6 +189,7 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			// But we still want to send `Allow` header as response in case of Non-CORS OPTIONS request as router default
 			// handler does.
 			routerAllowMethods := ""
+
 			if preflight {
 				tmpAllowMethods, ok := c.Get(echox.ContextKeyHeaderAllow).(string)
 				if ok && tmpAllowMethods != "" {
@@ -199,6 +203,7 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 				if !preflight {
 					return next(c)
 				}
+
 				return c.NoContent(http.StatusNoContent)
 			}
 
@@ -207,6 +212,7 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 				if err != nil {
 					return err
 				}
+
 				if allowed {
 					allowOrigin = origin
 				}
@@ -217,10 +223,12 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 						allowOrigin = origin
 						break
 					}
+
 					if o == "*" || o == origin {
 						allowOrigin = o
 						break
 					}
+
 					if matchSubdomain(origin, o) {
 						allowOrigin = origin
 						break
@@ -228,12 +236,14 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 				}
 
 				checkPatterns := false
+
 				if allowOrigin == "" {
 					// to avoid regex cost by invalid (long) domains (253 is domain name max limit)
 					if len(origin) <= (5+3+253) && strings.Contains(origin, "://") {
 						checkPatterns = true
 					}
 				}
+
 				if checkPatterns {
 					for _, re := range allowOriginPatterns {
 						if match, _ := regexp.MatchString(re, origin); match {
@@ -249,10 +259,12 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 				if !preflight {
 					return next(c)
 				}
+
 				return c.NoContent(http.StatusNoContent)
 			}
 
 			res.Header().Set(echox.HeaderAccessControlAllowOrigin, allowOrigin)
+
 			if config.AllowCredentials {
 				res.Header().Set(echox.HeaderAccessControlAllowCredentials, "true")
 			}
@@ -262,6 +274,7 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 				if exposeHeaders != "" {
 					res.Header().Set(echox.HeaderAccessControlExposeHeaders, exposeHeaders)
 				}
+
 				return next(c)
 			}
 
@@ -283,9 +296,11 @@ func (config CORSConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					res.Header().Set(echox.HeaderAccessControlAllowHeaders, h)
 				}
 			}
+
 			if config.MaxAge > 0 {
 				res.Header().Set(echox.HeaderAccessControlMaxAge, maxAge)
 			}
+
 			return c.NoContent(http.StatusNoContent)
 		}
 	}, nil

@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestBodyDump(t *testing.T) {
@@ -23,6 +24,7 @@ func TestBodyDump(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		return c.String(http.StatusOK, string(body))
 	}
 
@@ -40,7 +42,6 @@ func TestBodyDump(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, hw, rec.Body.String())
 	}
-
 }
 
 func TestBodyDump_skipper(t *testing.T) {
@@ -85,7 +86,6 @@ func TestBodyDump_fails(t *testing.T) {
 	err = mw(h)(c)
 	assert.EqualError(t, err, "some error")
 	assert.Equal(t, http.StatusOK, rec.Code)
-
 }
 
 func TestBodyDumpWithConfig_panic(t *testing.T) {

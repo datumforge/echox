@@ -74,8 +74,11 @@ func createExtractors(lookups string) ([]ValuesExtractor, error) {
 	if lookups == "" {
 		return nil, nil
 	}
+
 	sources := strings.Split(lookups, ",")
+
 	var extractors = make([]ValuesExtractor, 0)
+
 	for _, source := range sources {
 		parts := strings.Split(source, ":")
 		if len(parts) < 2 {
@@ -96,9 +99,11 @@ func createExtractors(lookups string) ([]ValuesExtractor, error) {
 			if len(parts) > 2 {
 				prefix = parts[2]
 			}
+
 			extractors = append(extractors, valuesFromHeader(parts[1], prefix))
 		}
 	}
+
 	return extractors, nil
 }
 
@@ -112,6 +117,7 @@ func valuesFromHeader(header string, valuePrefix string) ValuesExtractor {
 	prefixLen := len(valuePrefix)
 	// standard library parses http.Request header keys in canonical form but we may provide something else so fix this
 	header = textproto.CanonicalMIMEHeaderKey(header)
+
 	return func(c echox.Context) ([]string, ExtractorSource, error) {
 		values := c.Request().Header.Values(header)
 		if len(values) == 0 {
@@ -119,16 +125,21 @@ func valuesFromHeader(header string, valuePrefix string) ValuesExtractor {
 		}
 
 		result := make([]string, 0)
+
 		for i, value := range values {
 			if prefixLen == 0 {
 				result = append(result, value)
+
 				if i >= extractorLimit-1 {
 					break
 				}
+
 				continue
 			}
+
 			if len(value) > prefixLen && strings.EqualFold(value[:prefixLen], valuePrefix) {
 				result = append(result, value[prefixLen:])
+
 				if i >= extractorLimit-1 {
 					break
 				}
@@ -139,8 +150,10 @@ func valuesFromHeader(header string, valuePrefix string) ValuesExtractor {
 			if prefixLen > 0 {
 				return nil, ExtractorSourceHeader, errHeaderExtractorValueInvalid
 			}
+
 			return nil, ExtractorSourceHeader, errHeaderExtractorValueMissing
 		}
+
 		return result, ExtractorSourceHeader, nil
 	}
 }
@@ -154,6 +167,7 @@ func valuesFromQuery(param string) ValuesExtractor {
 		} else if len(result) > extractorLimit-1 {
 			result = result[:extractorLimit]
 		}
+
 		return result, ExtractorSourceQuery, nil
 	}
 }
@@ -162,17 +176,21 @@ func valuesFromQuery(param string) ValuesExtractor {
 func valuesFromParam(param string) ValuesExtractor {
 	return func(c echox.Context) ([]string, ExtractorSource, error) {
 		result := make([]string, 0)
+
 		for i, p := range c.PathParams() {
 			if param == p.Name {
 				result = append(result, p.Value)
+
 				if i >= extractorLimit-1 {
 					break
 				}
 			}
 		}
+
 		if len(result) == 0 {
 			return nil, ExtractorSourcePathParam, errParamExtractorValueMissing
 		}
+
 		return result, ExtractorSourcePathParam, nil
 	}
 }
@@ -186,17 +204,21 @@ func valuesFromCookie(name string) ValuesExtractor {
 		}
 
 		result := make([]string, 0)
+
 		for i, cookie := range cookies {
 			if name == cookie.Name {
 				result = append(result, cookie.Value)
+
 				if i >= extractorLimit-1 {
 					break
 				}
 			}
 		}
+
 		if len(result) == 0 {
 			return nil, ExtractorSourceCookie, errCookieExtractorValueMissing
 		}
+
 		return result, ExtractorSourceCookie, nil
 	}
 }
@@ -207,14 +229,18 @@ func valuesFromForm(name string) ValuesExtractor {
 		if c.Request().Form == nil {
 			_ = c.Request().ParseMultipartForm(32 << 20) // same what `c.Request().FormValue(name)` does
 		}
+
 		values := c.Request().Form[name]
 		if len(values) == 0 {
 			return nil, ExtractorSourceForm, errFormExtractorValueMissing
 		}
+
 		if len(values) > extractorLimit-1 {
 			values = values[:extractorLimit]
 		}
+
 		result := append([]string{}, values...)
+
 		return result, ExtractorSourceForm, nil
 	}
 }

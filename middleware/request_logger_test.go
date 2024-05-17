@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestRequestLoggerWithConfig(t *testing.T) {
@@ -51,6 +52,7 @@ func TestRequestLogger_skipper(t *testing.T) {
 	e := echox.New()
 
 	loggerCalled := false
+
 	e.Use(RequestLoggerWithConfig(RequestLoggerConfig{
 		Skipper: func(c echox.Context) bool {
 			return true
@@ -150,6 +152,7 @@ func TestRequestLogger_HandleError(t *testing.T) {
 		if c.Response().Committed {
 			return
 		}
+
 		c.JSON(http.StatusTeapot, "custom error handler")
 	}
 
@@ -195,7 +198,7 @@ func TestRequestLogger_LogValuesFuncError(t *testing.T) {
 	e.ServeHTTP(rec, req)
 
 	// NOTE: when global error handler received error returned from middleware the status has already
-	// been written to the client and response has been "commited" therefore global error handler does not do anything
+	// been written to the client and response has been "committed" therefore global error handler does not do anything
 	// and error that bubbled up in middleware chain will not be reflected in response code.
 	assert.Equal(t, http.StatusTeapot, rec.Code)
 	assert.Equal(t, http.StatusTeapot, expect.Status)
@@ -241,6 +244,7 @@ func TestRequestLogger_ID(t *testing.T) {
 			if tc.whenFromRequest {
 				req.Header.Set(echox.HeaderXRequestID, "123")
 			}
+
 			rec := httptest.NewRecorder()
 
 			e.ServeHTTP(rec, req)
@@ -264,6 +268,7 @@ func TestRequestLogger_headerIsCaseInsensitive(t *testing.T) {
 	})(func(c echox.Context) error {
 		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
+
 		return c.String(http.StatusTeapot, "OK")
 	})
 
@@ -318,6 +323,7 @@ func TestRequestLogger_allFields(t *testing.T) {
 	})(func(c echox.Context) error {
 		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
+
 		return c.String(http.StatusTeapot, "OK")
 	})
 
@@ -440,6 +446,7 @@ func BenchmarkRequestLogger_withMapFields(b *testing.B) {
 	})(func(c echox.Context) error {
 		c.Request().Header.Set(echox.HeaderXRequestID, "123")
 		c.FormValue("to force parse form")
+
 		return c.String(http.StatusTeapot, "OK")
 	})
 

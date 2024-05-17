@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/datumforge/echox"
 	"golang.org/x/time/rate"
+
+	"github.com/datumforge/echox"
 )
 
 // RateLimiterStore is the interface to be implemented by custom stores.
@@ -114,23 +115,29 @@ func (config RateLimiterConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultRateLimiterConfig.Skipper
 	}
+
 	if config.IdentifierExtractor == nil {
 		config.IdentifierExtractor = DefaultRateLimiterConfig.IdentifierExtractor
 	}
+
 	if config.ErrorHandler == nil {
 		config.ErrorHandler = DefaultRateLimiterConfig.ErrorHandler
 	}
+
 	if config.DenyHandler == nil {
 		config.DenyHandler = DefaultRateLimiterConfig.DenyHandler
 	}
+
 	if config.Store == nil {
 		return nil, errors.New("echo rate limiter store configuration must be provided")
 	}
+
 	return func(next echox.HandlerFunc) echox.HandlerFunc {
 		return func(c echox.Context) error {
 			if config.Skipper(c) {
 				return next(c)
 			}
+
 			if config.BeforeFunc != nil {
 				config.BeforeFunc(c)
 			}
@@ -143,6 +150,7 @@ func (config RateLimiterConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if allow, allowErr := config.Store.Allow(identifier); !allow {
 				return config.DenyHandler(c, identifier, allowErr)
 			}
+
 			return next(c)
 		}
 	}, nil
@@ -210,15 +218,19 @@ func NewRateLimiterMemoryStoreWithConfig(config RateLimiterMemoryStoreConfig) (s
 	store.rate = config.Rate
 	store.burst = config.Burst
 	store.expiresIn = config.ExpiresIn
+
 	if config.ExpiresIn == 0 {
 		store.expiresIn = DefaultRateLimiterMemoryStoreConfig.ExpiresIn
 	}
+
 	if config.Burst == 0 {
 		store.burst = int(config.Rate)
 	}
+
 	store.visitors = make(map[string]*Visitor)
 	store.timeNow = time.Now
 	store.lastCleanup = store.timeNow()
+
 	return
 }
 
@@ -237,18 +249,22 @@ var DefaultRateLimiterMemoryStoreConfig = RateLimiterMemoryStoreConfig{
 // Allow implements RateLimiterStore.Allow
 func (store *RateLimiterMemoryStore) Allow(identifier string) (bool, error) {
 	store.mutex.Lock()
+
 	limiter, exists := store.visitors[identifier]
 	if !exists {
 		limiter = new(Visitor)
 		limiter.Limiter = rate.NewLimiter(rate.Limit(store.rate), store.burst)
 		store.visitors[identifier] = limiter
 	}
+
 	now := store.timeNow()
 	limiter.lastSeen = now
+
 	if now.Sub(store.lastCleanup) > store.expiresIn {
 		store.cleanupStaleVisitors()
 	}
 	store.mutex.Unlock()
+
 	return limiter.AllowN(store.timeNow(), 1), nil
 }
 
@@ -262,5 +278,6 @@ func (store *RateLimiterMemoryStore) cleanupStaleVisitors() {
 			delete(store.visitors, id)
 		}
 	}
+
 	store.lastCleanup = store.timeNow()
 }

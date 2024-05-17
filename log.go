@@ -10,65 +10,65 @@ import (
 
 //-----------------------------------------------------------------------------
 // Example for Zap (https://github.com/uber-go/zap)
-//func main() {
+// func main() {
 //	e := echox.New()
 //	logger, _ := zap.NewProduction()
 //	e.Logger = &ZapLogger{logger: logger}
 //}
-//type ZapLogger struct {
+// type ZapLogger struct {
 //	logger *zap.Logger
 //}
 //
-//func (l *ZapLogger) Write(p []byte) (n int, err error) {
+// func (l *ZapLogger) Write(p []byte) (n int, err error) {
 //	// Note: if `logger` middleware is used it will send json bytes here, and it will not look beautiful at all.
 //	l.logger.Info(string(p), zap.String("subsystem", "echo")) // naively log everything as string message.
 //	return len(p), nil
 //}
 //
-//func (l *ZapLogger) Error(err error) {
+// func (l *ZapLogger) Error(err error) {
 //	l.logger.Error(err.Error(), zap.Error(err), zap.String("subsystem", "echo"))
 //}
 
 //-----------------------------------------------------------------------------
 // Example for Zerolog (https://github.com/rs/zerolog)
-//func main() {
+// func main() {
 //	e := echox.New()
 //	logger := zerolog.New(os.Stdout)
 //	e.Logger = &ZeroLogger{logger: &logger}
 //}
 //
-//type ZeroLogger struct {
+// type ZeroLogger struct {
 //	logger *zerolog.Logger
 //}
 //
-//func (l *ZeroLogger) Write(p []byte) (n int, err error) {
+// func (l *ZeroLogger) Write(p []byte) (n int, err error) {
 //	// Note: if `logger` middleware is used it will send json bytes here, and it will not look beautiful at all.
 //	l.logger.Info().Str("subsystem", "echo").Msg(string(p)) // naively log everything as string message.
 //	return len(p), nil
 //}
 //
-//func (l *ZeroLogger) Error(err error) {
+// func (l *ZeroLogger) Error(err error) {
 //	l.logger.Error().Str("subsystem", "echo").Err(err).Msg(err.Error())
 //}
 
 //-----------------------------------------------------------------------------
 // Example for Logrus (https://github.com/sirupsen/logrus)
-//func main() {
+// func main() {
 //	e := echox.New()
 //	e.Logger = &LogrusLogger{logger: logrus.New()}
 //}
 //
-//type LogrusLogger struct {
+// type LogrusLogger struct {
 //	logger *logrus.Logger
 //}
 //
-//func (l *LogrusLogger) Write(p []byte) (n int, err error) {
+// func (l *LogrusLogger) Write(p []byte) (n int, err error) {
 //	// Note: if `logger` middleware is used it will send json bytes here, and it will not look beautiful at all.
 //	l.logger.WithFields(logrus.Fields{"subsystem": "echo"}).Info(string(p)) // naively log everything as string message.
 //	return len(p), nil
 //}
 //
-//func (l *LogrusLogger) Error(err error) {
+// func (l *LogrusLogger) Error(err error) {
 //	l.logger.WithFields(logrus.Fields{"subsystem": "echo"}).Error(err)
 //}
 
@@ -144,5 +144,6 @@ func (l *jsonLogger) printf(level string, message string) (n int, err error) {
 func (l *jsonLogger) write(p []byte) (int, error) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
+
 	return l.writer.Write(p)
 }

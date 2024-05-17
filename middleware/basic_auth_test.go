@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestBasicAuth(t *testing.T) {
@@ -17,9 +18,11 @@ func TestBasicAuth(t *testing.T) {
 		if u == "joe" && p == "secret" {
 			return true, nil
 		}
+
 		if u == "error" {
 			return false, errors.New(p)
 		}
+
 		return false, nil
 	}
 	defaultConfig := BasicAuthConfig{Validator: validatorFunc}
@@ -117,6 +120,7 @@ func TestBasicAuth(t *testing.T) {
 					req.Header.Add(echox.HeaderAuthorization, a)
 				}
 			}
+
 			err = h(c)
 
 			if tc.expectErr != "" {
@@ -126,6 +130,7 @@ func TestBasicAuth(t *testing.T) {
 				assert.Equal(t, http.StatusTeapot, res.Code)
 				assert.NoError(t, err)
 			}
+
 			if tc.expectHeader != "" {
 				assert.Equal(t, tc.expectHeader, res.Header().Get(echox.HeaderWWWAuthenticate))
 			}

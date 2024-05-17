@@ -15,8 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 // Assert expected with url.EscapedPath method to obtain the path.
@@ -27,6 +28,7 @@ func TestProxy(t *testing.T) {
 	}))
 	defer t1.Close()
 	url1, _ := url.Parse(t1.URL)
+
 	t2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "target 2")
 	}))
@@ -57,6 +59,7 @@ func TestProxy(t *testing.T) {
 	// Random
 	e := echox.New()
 	e.Use(ProxyWithConfig(ProxyConfig{Balancer: rb}))
+
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -65,6 +68,7 @@ func TestProxy(t *testing.T) {
 		"target 1": true,
 		"target 2": true,
 	}
+
 	assert.Condition(t, func() bool {
 		return expected[body]
 	})
@@ -111,6 +115,7 @@ func TestProxy(t *testing.T) {
 		return func(c echox.Context) (err error) {
 			next(c)
 			assert.Contains(t, targets, c.Get("target"), "target is not set in context")
+
 			return nil
 		}
 	}
@@ -118,6 +123,7 @@ func TestProxy(t *testing.T) {
 	e = echox.New()
 	e.Use(contextObserver)
 	e.Use(ProxyWithConfig(ProxyConfig{Balancer: NewRoundRobinBalancer(targets)}))
+
 	rec = httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 }
@@ -136,6 +142,7 @@ func TestProxyRealIPHeader(t *testing.T) {
 	rrb := NewRoundRobinBalancer([]*ProxyTarget{{Name: "upstream", URL: url}})
 	e := echox.New()
 	e.Use(ProxyWithConfig(ProxyConfig{Balancer: rrb}))
+
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
@@ -159,6 +166,7 @@ func TestProxyRealIPHeader(t *testing.T) {
 		} else {
 			req.Header.Del(echox.HeaderXRealIP)
 		}
+
 		if tt.hasIPExtractor {
 			e.IPExtractor = func(*http.Request) string {
 				return extractedRealIP
@@ -166,6 +174,7 @@ func TestProxyRealIPHeader(t *testing.T) {
 		} else {
 			e.IPExtractor = nil
 		}
+
 		e.ServeHTTP(rec, req)
 		assert.Equal(t, tt.extectedXRealIP, req.Header.Get(echox.HeaderXRealIP), "hasRealIPheader: %t / hasIPExtractor: %t", tt.hasRealIPheader, tt.hasIPExtractor)
 	}
@@ -217,6 +226,7 @@ func TestProxyRewrite(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.whenPath, func(t *testing.T) {
 			receivedRequestURI := make(chan string, 1)
+
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// RequestURI is the unmodified request-target of the Request-Line (RFC 7230, Section 3.1.1) as sent by the client to a server
 				// we need unmodified target to see if we are encoding/decoding the url in addition to rewrite/replace logic
@@ -246,6 +256,7 @@ func TestProxyRewrite(t *testing.T) {
 			e.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectStatus, rec.Code)
+
 			actualRequestURI := <-receivedRequestURI
 			assert.Equal(t, tc.expectProxiedURI, actualRequestURI)
 		})
@@ -255,6 +266,7 @@ func TestProxyRewrite(t *testing.T) {
 func TestProxyRewriteRegex(t *testing.T) {
 	// Setup
 	receivedRequestURI := make(chan string, 1)
+
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// RequestURI is the unmodified request-target of the Request-Line (RFC 7230, Section 3.1.1) as sent by the client to a server
 		// we need unmodified target to see if we are encoding/decoding the url in addition to rewrite/replace logic
@@ -341,6 +353,7 @@ func TestProxyError(t *testing.T) {
 	// Random
 	e := echox.New()
 	e.Use(ProxyWithConfig(ProxyConfig{Balancer: rb}))
+
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	// Remote unreachable
@@ -354,6 +367,7 @@ func TestProxyError(t *testing.T) {
 func TestClientCancelConnectionResultsHTTPCode499(t *testing.T) {
 	var timeoutStop sync.WaitGroup
 	timeoutStop.Add(1)
+
 	HTTPTarget := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		timeoutStop.Wait() // wait until we have canceled the request
 		w.WriteHeader(http.StatusOK)
@@ -366,12 +380,15 @@ func TestClientCancelConnectionResultsHTTPCode499(t *testing.T) {
 	}
 	rb := NewRandomBalancer(nil)
 	assert.True(t, rb.AddTarget(target))
+
 	e := echox.New()
 	e.Use(ProxyWithConfig(ProxyConfig{Balancer: rb}))
+
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	ctx, cancel := context.WithCancel(req.Context())
 	req = req.WithContext(ctx)
+
 	go func() {
 		time.Sleep(10 * time.Millisecond)
 		cancel()
@@ -402,6 +419,7 @@ func TestTargetProvider(t *testing.T) {
 	tp := &testProvider{}
 	tp.target = &ProxyTarget{Name: "target 1", URL: url1}
 	e.Use(Proxy(tp))
+
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	e.ServeHTTP(rec, req)
@@ -419,6 +437,7 @@ func TestFailNextTarget(t *testing.T) {
 	tp.err = echox.NewHTTPError(http.StatusInternalServerError, "method could not select target")
 
 	e.Use(Proxy(tp))
+
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	e.ServeHTTP(rec, req)
@@ -460,11 +479,13 @@ func TestProxyRetries(t *testing.T) {
 			}),
 		)
 		targetURL, _ := url.Parse(server.URL)
+
 		return targetURL, server
 	}
 
 	targetURL, server := newServer(http.StatusOK)
 	defer server.Close()
+
 	goodTarget := &ProxyTarget{
 		Name: "Good",
 		URL:  targetURL,
@@ -472,6 +493,7 @@ func TestProxyRetries(t *testing.T) {
 
 	targetURL, server = newServer(http.StatusBadRequest)
 	defer server.Close()
+
 	goodTargetWith40X := &ProxyTarget{
 		Name: "Good with 40X",
 		URL:  targetURL,
@@ -544,7 +566,7 @@ func TestProxyRetries(t *testing.T) {
 				badTarget,
 				badTarget,
 				badTarget,
-				goodTarget, //Should never be reached as only 2 retries
+				goodTarget, // Should never be reached as only 2 retries
 			},
 			expectedResponse: http.StatusBadGateway,
 		},
@@ -560,7 +582,7 @@ func TestProxyRetries(t *testing.T) {
 				badTarget,
 				badTarget,
 				badTarget,
-				goodTarget, //Should never be reached as retry handler returns false on 2nd check
+				goodTarget, // Should never be reached as retry handler returns false on 2nd check
 			},
 			expectedResponse: http.StatusBadGateway,
 		},
@@ -593,7 +615,6 @@ func TestProxyRetries(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			retryFilterCall := 0
 			retryFilter := func(c echox.Context, e error) bool {
 				if len(tc.retryFilters) == 0 {
@@ -623,6 +644,7 @@ func TestProxyRetries(t *testing.T) {
 			e.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectedResponse, rec.Code)
+
 			if len(tc.retryFilters) > 0 {
 				assert.FailNow(t, fmt.Sprintf("expected %d more retry handler calls", len(tc.retryFilters)))
 			}
@@ -631,7 +653,6 @@ func TestProxyRetries(t *testing.T) {
 }
 
 func TestProxyRetryWithBackendTimeout(t *testing.T) {
-
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.ResponseHeaderTimeout = time.Millisecond * 500
 
@@ -644,6 +665,7 @@ func TestProxyRetryWithBackendTimeout(t *testing.T) {
 	defer timeoutBackend.Close()
 
 	timeoutTargetURL, _ := url.Parse(timeoutBackend.URL)
+
 	goodBackend := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(200)
@@ -673,8 +695,10 @@ func TestProxyRetryWithBackendTimeout(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
+
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			rec := httptest.NewRecorder()
 			e.ServeHTTP(rec, req)
@@ -683,17 +707,16 @@ func TestProxyRetryWithBackendTimeout(t *testing.T) {
 	}
 
 	wg.Wait()
-
 }
 
 func TestProxyErrorHandler(t *testing.T) {
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
 	goodURL, _ := url.Parse(server.URL)
 	defer server.Close()
+
 	goodTarget := &ProxyTarget{
 		Name: "Good",
 		URL:  goodURL,
@@ -750,6 +773,7 @@ func TestProxyErrorHandler(t *testing.T) {
 			dheh := echox.DefaultHTTPErrorHandler(false)
 			e.HTTPErrorHandler = func(c echox.Context, err error) {
 				errorHandlerCalled = true
+
 				tc.expectFinalError(t, err)
 				dheh(c, err)
 			}
@@ -762,7 +786,6 @@ func TestProxyErrorHandler(t *testing.T) {
 			if !errorHandlerCalled && tc.expectFinalError != nil {
 				t.Fatalf("error handler was not called")
 			}
-
 		})
 	}
 }

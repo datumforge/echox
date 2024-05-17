@@ -76,6 +76,7 @@ var DefaultKeyAuthConfig = KeyAuthConfig{
 func KeyAuth(fn KeyAuthValidator) echox.MiddlewareFunc {
 	c := DefaultKeyAuthConfig
 	c.Validator = fn
+
 	return KeyAuthWithConfig(c)
 }
 
@@ -93,9 +94,11 @@ func (config KeyAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultKeyAuthConfig.Skipper
 	}
+
 	if config.KeyLookup == "" {
 		config.KeyLookup = DefaultKeyAuthConfig.KeyLookup
 	}
+
 	if config.Validator == nil {
 		return nil, errors.New("echo key-auth middleware requires a validator function")
 	}
@@ -104,6 +107,7 @@ func (config KeyAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if cErr != nil {
 		return nil, fmt.Errorf("echo key-auth middleware could not create key extractor: %w", cErr)
 	}
+
 	if len(extractors) == 0 {
 		return nil, errors.New("echo key-auth middleware could not create extractors from KeyLookup string")
 	}
@@ -115,23 +119,28 @@ func (config KeyAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			}
 
 			var lastExtractorErr error
+
 			var lastValidatorErr error
+
 			for _, extractor := range extractors {
 				keys, source, extrErr := extractor(c)
 				if extrErr != nil {
 					lastExtractorErr = extrErr
 					continue
 				}
+
 				for _, key := range keys {
 					valid, err := config.Validator(c, key, source)
 					if err != nil {
 						lastValidatorErr = err
 						continue
 					}
+
 					if !valid {
 						lastValidatorErr = ErrInvalidKey
 						continue
 					}
+
 					return next(c)
 				}
 			}
@@ -141,16 +150,20 @@ func (config KeyAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if err == nil {
 				err = lastExtractorErr
 			}
+
 			if config.ErrorHandler != nil {
 				tmpErr := config.ErrorHandler(c, err)
 				if config.ContinueOnIgnoredError && tmpErr == nil {
 					return next(c)
 				}
+
 				return tmpErr
 			}
+
 			if lastValidatorErr == nil {
 				return ErrKeyMissing.WithInternal(err)
 			}
+
 			return echox.ErrUnauthorized.WithInternal(err)
 		}
 	}, nil

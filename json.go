@@ -16,6 +16,7 @@ func (d DefaultJSONSerializer) Serialize(c Context, i interface{}, indent string
 	if indent != "" {
 		enc.SetIndent("", indent)
 	}
+
 	return enc.Encode(i)
 }
 
@@ -34,5 +35,6 @@ func (d DefaultJSONSerializer) Deserialize(c Context, i interface{}) error {
 			fmt.Sprintf("Syntax error: offset=%v, error=%v", se.Offset, se.Error()),
 		)
 	}
+
 	return err
 }

@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/time/rate"
+
+	"github.com/datumforge/echox"
 )
 
 func TestRateLimiter(t *testing.T) {
@@ -51,6 +52,7 @@ func TestRateLimiter(t *testing.T) {
 		} else {
 			assert.NoError(t, err)
 		}
+
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
@@ -170,6 +172,7 @@ func TestRateLimiterWithConfig_defaultDenyHandler(t *testing.T) {
 		} else {
 			assert.NoError(t, err)
 		}
+
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
@@ -216,6 +219,7 @@ func TestRateLimiterWithConfig_defaultConfig(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, http.StatusOK, rec.Code)
 		}
 	}
@@ -360,6 +364,7 @@ func TestRateLimiterMemoryStore_Allow(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Logf("Running testcase #%d => %v", i, time.Duration(i)*220*time.Millisecond)
+
 		inMemoryStore.timeNow = func() time.Time {
 			return time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC).Add(time.Duration(i) * 220 * time.Millisecond)
 		}
@@ -433,6 +438,7 @@ func generateAddressList(count int) []string {
 	for i := 0; i < count; i++ {
 		addrs[i] = randomString(15)
 	}
+
 	return addrs
 }
 
@@ -445,9 +451,11 @@ func run(wg *sync.WaitGroup, store RateLimiterStore, addrs []string, max int, b 
 
 func benchmarkStore(store RateLimiterStore, parallel int, max int, b *testing.B) {
 	addrs := generateAddressList(max)
+
 	wg := &sync.WaitGroup{}
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
+
 		go run(wg, store, addrs, max, b)
 	}
 	wg.Wait()

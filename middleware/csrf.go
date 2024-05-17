@@ -99,24 +99,31 @@ func (config CSRFConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultCSRFConfig.Skipper
 	}
+
 	if config.TokenLength == 0 {
 		config.TokenLength = DefaultCSRFConfig.TokenLength
 	}
+
 	if config.Generator == nil {
 		config.Generator = createRandomStringGenerator(config.TokenLength)
 	}
+
 	if config.TokenLookup == "" {
 		config.TokenLookup = DefaultCSRFConfig.TokenLookup
 	}
+
 	if config.ContextKey == "" {
 		config.ContextKey = DefaultCSRFConfig.ContextKey
 	}
+
 	if config.CookieName == "" {
 		config.CookieName = DefaultCSRFConfig.CookieName
 	}
+
 	if config.CookieMaxAge == 0 {
 		config.CookieMaxAge = DefaultCSRFConfig.CookieMaxAge
 	}
+
 	if config.CookieSameSite == http.SameSiteNoneMode {
 		config.CookieSecure = true
 	}
@@ -144,7 +151,9 @@ func (config CSRFConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			default:
 				// Validate token only for requests which are not defined as 'safe' by RFC7231
 				var lastExtractorErr error
+
 				var lastTokenErr error
+
 			outer:
 				for _, extractor := range extractors {
 					clientTokens, _, err := extractor(c)
@@ -162,16 +171,19 @@ func (config CSRFConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 						lastTokenErr = ErrCSRFInvalid
 					}
 				}
+
 				var finalErr error
 				if lastTokenErr != nil {
 					finalErr = lastTokenErr
 				} else if lastExtractorErr != nil {
 					finalErr = echox.ErrBadRequest.WithInternal(lastExtractorErr)
 				}
+
 				if finalErr != nil {
 					if config.ErrorHandler != nil {
 						return config.ErrorHandler(c, finalErr)
 					}
+
 					return finalErr
 				}
 			}
@@ -180,15 +192,19 @@ func (config CSRFConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			cookie := new(http.Cookie)
 			cookie.Name = config.CookieName
 			cookie.Value = token
+
 			if config.CookiePath != "" {
 				cookie.Path = config.CookiePath
 			}
+
 			if config.CookieDomain != "" {
 				cookie.Domain = config.CookieDomain
 			}
+
 			if config.CookieSameSite != http.SameSiteDefaultMode {
 				cookie.SameSite = config.CookieSameSite
 			}
+
 			cookie.Expires = time.Now().Add(time.Duration(config.CookieMaxAge) * time.Second)
 			cookie.Secure = config.CookieSecure
 			cookie.HttpOnly = config.CookieHTTPOnly

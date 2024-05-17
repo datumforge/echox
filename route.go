@@ -49,6 +49,7 @@ func (r Route) ForGroup(pathPrefix string, middlewares []MiddlewareFunc) Routabl
 		m = append(m, r.Middlewares...)
 		r.Middlewares = m
 	}
+
 	return r
 }
 
@@ -80,22 +81,27 @@ func (r routeInfo) Reverse(params ...interface{}) string {
 	uri := new(bytes.Buffer)
 	ln := len(params)
 	n := 0
+
 	for i, l := 0, len(r.path); i < l; i++ {
 		hasBackslash := r.path[i] == '\\'
 		if hasBackslash && i+1 < l && r.path[i+1] == ':' {
 			i++ // backslash before colon escapes that colon. in that case skip backslash
 		}
+
 		if n < ln && (r.path[i] == anyLabel || (!hasBackslash && r.path[i] == paramLabel)) {
 			// in case of `*` wildcard or `:` (unescaped colon) param we replace everything till next slash or end of path
 			for ; i < l && r.path[i] != '/'; i++ {
 			}
 			uri.WriteString(fmt.Sprintf("%v", params[n]))
+
 			n++
 		}
+
 		if i < l {
 			uri.WriteByte(r.path[i])
 		}
 	}
+
 	return uri.String()
 }
 
@@ -105,6 +111,7 @@ func HandlerName(h HandlerFunc) string {
 	if t.Kind() == reflect.Func {
 		return runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	}
+
 	return t.String()
 }
 
@@ -115,6 +122,7 @@ func (r Routes) Reverse(name string, params ...interface{}) (string, error) {
 			return rr.Reverse(params...), nil
 		}
 	}
+
 	return "", errors.New("route not found")
 }
 
@@ -129,6 +137,7 @@ func (r Routes) FindByMethodPath(method string, path string) (RouteInfo, error) 
 			return rr, nil
 		}
 	}
+
 	return nil, errors.New("route not found by method and path")
 }
 
@@ -139,14 +148,17 @@ func (r Routes) FilterByMethod(method string) (Routes, error) {
 	}
 
 	result := make(Routes, 0)
+
 	for _, rr := range r {
 		if rr.Method() == method {
 			result = append(result, rr)
 		}
 	}
+
 	if len(result) == 0 {
 		return nil, errors.New("route not found by method")
 	}
+
 	return result, nil
 }
 
@@ -157,14 +169,17 @@ func (r Routes) FilterByPath(path string) (Routes, error) {
 	}
 
 	result := make(Routes, 0)
+
 	for _, rr := range r {
 		if rr.Path() == path {
 			result = append(result, rr)
 		}
 	}
+
 	if len(result) == 0 {
 		return nil, errors.New("route not found by path")
 	}
+
 	return result, nil
 }
 
@@ -175,13 +190,16 @@ func (r Routes) FilterByName(name string) (Routes, error) {
 	}
 
 	result := make(Routes, 0)
+
 	for _, rr := range r {
 		if rr.Name() == name {
 			result = append(result, rr)
 		}
 	}
+
 	if len(result) == 0 {
 		return nil, errors.New("route not found by name")
 	}
+
 	return result, nil
 }

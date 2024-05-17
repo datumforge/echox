@@ -117,9 +117,11 @@ func (config RedirectConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.Code == 0 {
 		config.Code = http.StatusMovedPermanently
 	}
+
 	if config.redirect == nil {
 		return nil, errors.New("redirectConfig is missing redirect function")
 	}
@@ -132,6 +134,7 @@ func (config RedirectConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 			req, scheme := c.Request(), c.Scheme()
 			host := req.Host
+
 			if ok, url := config.redirect(scheme, host, req.RequestURI); ok {
 				return c.Redirect(config.Code, url)
 			}

@@ -7,8 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestBodyLimitConfig_ToMiddleware(t *testing.T) {
@@ -22,6 +23,7 @@ func TestBodyLimitConfig_ToMiddleware(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		return c.String(http.StatusOK, string(body))
 	}
 
@@ -38,6 +40,7 @@ func TestBodyLimitConfig_ToMiddleware(t *testing.T) {
 	// Based on content read (overlimit)
 	mw, err = BodyLimitConfig{LimitBytes: 2}.ToMiddleware()
 	assert.NoError(t, err)
+
 	he := mw(h)(c).(*echox.HTTPError)
 	assert.Equal(t, http.StatusRequestEntityTooLarge, he.Code)
 
@@ -61,6 +64,7 @@ func TestBodyLimitConfig_ToMiddleware(t *testing.T) {
 	c = e.NewContext(req, rec)
 	mw, err = BodyLimitConfig{LimitBytes: 2}.ToMiddleware()
 	assert.NoError(t, err)
+
 	he = mw(h)(c).(*echox.HTTPError)
 	assert.Equal(t, http.StatusRequestEntityTooLarge, he.Code)
 }
@@ -84,6 +88,7 @@ func TestBodyLimitReader(t *testing.T) {
 
 	// reset reader and read two bytes must succeed
 	bt := make([]byte, 2)
+
 	reader.Reset(io.NopCloser(bytes.NewReader(hw)))
 	n, err := reader.Read(bt)
 	assert.Equal(t, 2, n)
@@ -97,6 +102,7 @@ func TestBodyLimit_skipper(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		return c.String(http.StatusOK, string(body))
 	}
 	mw, err := BodyLimitConfig{
@@ -129,6 +135,7 @@ func TestBodyLimitWithConfig(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		return c.String(http.StatusOK, string(body))
 	}
 
@@ -151,6 +158,7 @@ func TestBodyLimit(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
 		return c.String(http.StatusOK, string(body))
 	}
 

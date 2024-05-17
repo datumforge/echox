@@ -9,8 +9,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestStatic_useCaseForApiAndSPAs(t *testing.T) {
@@ -41,7 +42,6 @@ func TestStatic_useCaseForApiAndSPAs(t *testing.T) {
 	e.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "<title>Echo</title>")
-
 }
 
 func TestStatic(t *testing.T) {
@@ -177,6 +177,7 @@ func TestStatic(t *testing.T) {
 			if tc.givenConfig != nil {
 				config = *tc.givenConfig
 			}
+
 			middlewareFunc := StaticWithConfig(config)
 			if tc.givenAttachedToGroup != "" {
 				// middleware is attached to group
@@ -202,10 +203,12 @@ func TestStatic(t *testing.T) {
 			e.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectCode, rec.Code)
+
 			if tc.expectContains != "" {
 				responseBody := rec.Body.String()
 				assert.Contains(t, responseBody, tc.expectContains)
 			}
+
 			if tc.expectLength != "" {
 				assert.Equal(t, rec.Header().Get(echox.HeaderContentLength), tc.expectLength)
 			}
@@ -344,6 +347,7 @@ func TestStatic_GroupWithStatic(t *testing.T) {
 			if tc.givenGroup != "" {
 				group = tc.givenGroup
 			}
+
 			g := e.Group(group)
 			g.Static(tc.givenPrefix, tc.givenRoot)
 
@@ -353,6 +357,7 @@ func TestStatic_GroupWithStatic(t *testing.T) {
 			e.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectStatus, rec.Code)
+
 			body := rec.Body.String()
 			if tc.expectBodyStartsWith != "" {
 				assert.True(t, strings.HasPrefix(body, tc.expectBodyStartsWith))
@@ -525,6 +530,7 @@ func TestStatic_CustomFS(t *testing.T) {
 			e.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.expectCode, rec.Code)
+
 			if tc.expectContains != "" {
 				responseBody := rec.Body.String()
 				assert.Contains(t, responseBody, tc.expectContains)

@@ -251,6 +251,7 @@ type DefaultContext struct {
 // to preallocate PathParams slice.
 func NewDefaultContext(e *Echo, pathParamAllocSize int) *DefaultContext {
 	p := make(PathParams, pathParamAllocSize)
+
 	return &DefaultContext{
 		pathParams: &p,
 		store:      make(Map),
@@ -319,18 +320,23 @@ func (c *DefaultContext) Scheme() string {
 	if c.IsTLS() {
 		return "https"
 	}
+
 	if scheme := c.request.Header.Get(HeaderXForwardedProto); scheme != "" {
 		return scheme
 	}
+
 	if scheme := c.request.Header.Get(HeaderXForwardedProtocol); scheme != "" {
 		return scheme
 	}
+
 	if ssl := c.request.Header.Get(HeaderXForwardedSsl); ssl == "on" {
 		return "https"
 	}
+
 	if scheme := c.request.Header.Get(HeaderXUrlScheme); scheme != "" {
 		return scheme
 	}
+
 	return "http"
 }
 
@@ -348,16 +354,22 @@ func (c *DefaultContext) RealIP() string {
 			xffip := strings.TrimSpace(ip[:i])
 			xffip = strings.TrimPrefix(xffip, "[")
 			xffip = strings.TrimSuffix(xffip, "]")
+
 			return xffip
 		}
+
 		return ip
 	}
+
 	if ip := c.request.Header.Get(HeaderXRealIP); ip != "" {
 		ip = strings.TrimPrefix(ip, "[")
 		ip = strings.TrimSuffix(ip, "]")
+
 		return ip
 	}
+
 	ra, _, _ := net.SplitHostPort(c.request.RemoteAddr)
+
 	return ra
 }
 
@@ -418,6 +430,7 @@ func (c *DefaultContext) PathParams() PathParams {
 
 	result := make(PathParams, len(*c.pathParams))
 	copy(result, *c.pathParams)
+
 	return result
 }
 
@@ -431,6 +444,7 @@ func (c *DefaultContext) QueryParam(name string) string {
 	if c.query == nil {
 		c.query = c.request.URL.Query()
 	}
+
 	return c.query.Get(name)
 }
 
@@ -442,6 +456,7 @@ func (c *DefaultContext) QueryParamDefault(name, defaultValue string) string {
 	if value == "" {
 		value = defaultValue
 	}
+
 	return value
 }
 
@@ -450,6 +465,7 @@ func (c *DefaultContext) QueryParams() url.Values {
 	if c.query == nil {
 		c.query = c.request.URL.Query()
 	}
+
 	return c.query
 }
 
@@ -470,6 +486,7 @@ func (c *DefaultContext) FormValueDefault(name, defaultValue string) string {
 	if value == "" {
 		value = defaultValue
 	}
+
 	return value
 }
 
@@ -484,6 +501,7 @@ func (c *DefaultContext) FormValues() (url.Values, error) {
 			return nil, err
 		}
 	}
+
 	return c.request.Form, nil
 }
 
@@ -493,7 +511,9 @@ func (c *DefaultContext) FormFile(name string) (*multipart.FileHeader, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	f.Close()
+
 	return fh, nil
 }
 
@@ -522,6 +542,7 @@ func (c *DefaultContext) Cookies() []*http.Cookie {
 func (c *DefaultContext) Get(key string) interface{} {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
+
 	return c.store[key]
 }
 
@@ -533,6 +554,7 @@ func (c *DefaultContext) Set(key string, val interface{}) {
 	if c.store == nil {
 		c.store = make(Map)
 	}
+
 	c.store[key] = val
 }
 
@@ -548,6 +570,7 @@ func (c *DefaultContext) Validate(i interface{}) error {
 	if c.echo.Validator == nil {
 		return ErrValidatorNotRegistered
 	}
+
 	return c.echo.Validator.Validate(i)
 }
 
@@ -557,10 +580,12 @@ func (c *DefaultContext) Render(code int, name string, data interface{}) (err er
 	if c.echo.Renderer == nil {
 		return ErrRendererNotRegistered
 	}
+
 	buf := new(bytes.Buffer)
 	if err = c.echo.Renderer.Render(buf, name, data, c); err != nil {
 		return
 	}
+
 	return c.HTMLBlob(code, buf.Bytes())
 }
 
@@ -584,23 +609,29 @@ func (c *DefaultContext) jsonPBlob(code int, callback string, i interface{}) (er
 	if _, pretty := c.QueryParams()["pretty"]; c.echo.Debug || pretty {
 		indent = defaultIndent
 	}
+
 	c.writeContentType(MIMEApplicationJavaScriptCharsetUTF8)
 	c.response.WriteHeader(code)
+
 	if _, err = c.response.Write([]byte(callback + "(")); err != nil {
 		return
 	}
+
 	if err = c.echo.JSONSerializer.Serialize(c, i, indent); err != nil {
 		return
 	}
+
 	if _, err = c.response.Write([]byte(");")); err != nil {
 		return
 	}
+
 	return
 }
 
 func (c *DefaultContext) json(code int, i interface{}, indent string) error {
 	c.writeContentType(MIMEApplicationJSONCharsetUTF8)
 	c.response.Status = code
+
 	return c.echo.JSONSerializer.Serialize(c, i, indent)
 }
 
@@ -610,6 +641,7 @@ func (c *DefaultContext) JSON(code int, i interface{}) (err error) {
 	if _, pretty := c.QueryParams()["pretty"]; c.echo.Debug || pretty {
 		indent = defaultIndent
 	}
+
 	return c.json(code, i, indent)
 }
 
@@ -634,26 +666,33 @@ func (c *DefaultContext) JSONP(code int, callback string, i interface{}) (err er
 func (c *DefaultContext) JSONPBlob(code int, callback string, b []byte) (err error) {
 	c.writeContentType(MIMEApplicationJavaScriptCharsetUTF8)
 	c.response.WriteHeader(code)
+
 	if _, err = c.response.Write([]byte(callback + "(")); err != nil {
 		return
 	}
+
 	if _, err = c.response.Write(b); err != nil {
 		return
 	}
+
 	_, err = c.response.Write([]byte(");"))
+
 	return
 }
 
 func (c *DefaultContext) xml(code int, i interface{}, indent string) (err error) {
 	c.writeContentType(MIMEApplicationXMLCharsetUTF8)
 	c.response.WriteHeader(code)
+
 	enc := xml.NewEncoder(c.response)
 	if indent != "" {
 		enc.Indent("", indent)
 	}
+
 	if _, err = c.response.Write([]byte(xml.Header)); err != nil {
 		return
 	}
+
 	return enc.Encode(i)
 }
 
@@ -663,6 +702,7 @@ func (c *DefaultContext) XML(code int, i interface{}) (err error) {
 	if _, pretty := c.QueryParams()["pretty"]; c.echo.Debug || pretty {
 		indent = defaultIndent
 	}
+
 	return c.xml(code, i, indent)
 }
 
@@ -675,10 +715,13 @@ func (c *DefaultContext) XMLPretty(code int, i interface{}, indent string) (err 
 func (c *DefaultContext) XMLBlob(code int, b []byte) (err error) {
 	c.writeContentType(MIMEApplicationXMLCharsetUTF8)
 	c.response.WriteHeader(code)
+
 	if _, err = c.response.Write([]byte(xml.Header)); err != nil {
 		return
 	}
+
 	_, err = c.response.Write(b)
+
 	return
 }
 
@@ -687,6 +730,7 @@ func (c *DefaultContext) Blob(code int, contentType string, b []byte) (err error
 	c.writeContentType(contentType)
 	c.response.WriteHeader(code)
 	_, err = c.response.Write(b)
+
 	return
 }
 
@@ -695,6 +739,7 @@ func (c *DefaultContext) Stream(code int, contentType string, r io.Reader) (err 
 	c.writeContentType(contentType)
 	c.response.WriteHeader(code)
 	_, err = io.Copy(c.response, r)
+
 	return
 }
 
@@ -722,20 +767,26 @@ func fsFile(c Context, file string, filesystem fs.FS) error {
 	fi, _ := f.Stat()
 	if fi.IsDir() {
 		file = filepath.ToSlash(filepath.Join(file, indexPage)) // ToSlash is necessary for Windows. fs.Open and os.Open are different in that aspect.
+
 		f, err = filesystem.Open(file)
 		if err != nil {
 			return ErrNotFound
 		}
+
 		defer f.Close()
+
 		if fi, err = f.Stat(); err != nil {
 			return err
 		}
 	}
+
 	ff, ok := f.(io.ReadSeeker)
 	if !ok {
 		return errors.New("file does not implement io.ReadSeeker")
 	}
+
 	http.ServeContent(c.Response(), c.Request(), fi.Name(), fi.ModTime(), ff)
+
 	return nil
 }
 
@@ -749,8 +800,10 @@ func (c *DefaultContext) Inline(file, name string) error {
 	return c.contentDisposition(file, name, "inline")
 }
 
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
 func (c *DefaultContext) contentDisposition(file, name, dispositionType string) error {
-	c.response.Header().Set(HeaderContentDisposition, fmt.Sprintf("%s; filename=%q", dispositionType, name))
+	c.response.Header().Set(HeaderContentDisposition, fmt.Sprintf(`%s; filename="%s"`, dispositionType, quoteEscaper.Replace(name)))
 	return c.File(file)
 }
 
@@ -765,8 +818,10 @@ func (c *DefaultContext) Redirect(code int, url string) error {
 	if code < 300 || code > 308 {
 		return ErrInvalidRedirectCode
 	}
+
 	c.response.Header().Set(HeaderLocation, url)
 	c.response.WriteHeader(code)
+
 	return nil
 }
 

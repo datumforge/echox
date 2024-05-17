@@ -6,8 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestCORS(t *testing.T) {
@@ -156,6 +157,7 @@ func TestCORS(t *testing.T) {
 			expectHeaders: map[string]string{echox.HeaderAccessControlAllowOrigin: "http://bbb.example.com"},
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := echox.New()
@@ -164,6 +166,7 @@ func TestCORS(t *testing.T) {
 			if tc.givenMW != nil {
 				mw = tc.givenMW
 			}
+
 			h := mw(func(c echox.Context) error {
 				return nil
 			})
@@ -172,9 +175,11 @@ func TestCORS(t *testing.T) {
 			if tc.whenMethod != "" {
 				method = tc.whenMethod
 			}
+
 			req := httptest.NewRequest(method, "/", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
+
 			for k, v := range tc.whenHeaders {
 				req.Header.Set(k, v)
 			}
@@ -182,10 +187,12 @@ func TestCORS(t *testing.T) {
 			err := h(c)
 
 			assert.NoError(t, err)
+
 			header := rec.Header()
 			for k, v := range tc.expectHeaders {
 				assert.Equal(t, v, header.Get(k), "header: `%v` should be `%v`", k, v)
 			}
+
 			for k, v := range tc.notExpectHeaders {
 				if v == "" {
 					assert.Len(t, header.Values(k), 0, "header: `%v` should not be set", k)
@@ -225,6 +232,7 @@ func Test_allowOriginScheme(t *testing.T) {
 	}
 
 	e := echox.New()
+
 	for _, tt := range tests {
 		req := httptest.NewRequest(http.MethodOptions, "/", nil)
 		rec := httptest.NewRecorder()
@@ -316,6 +324,7 @@ func Test_allowOriginSubdomain(t *testing.T) {
 	}
 
 	e := echox.New()
+
 	for _, tt := range tests {
 		req := httptest.NewRequest(http.MethodOptions, "/", nil)
 		rec := httptest.NewRecorder()
@@ -404,6 +413,7 @@ func TestCORSWithConfig_AllowMethods(t *testing.T) {
 			c := e.NewContext(req, rec)
 
 			req.Header.Set(echox.HeaderOrigin, tc.whenOrigin)
+
 			if tc.allowContextKey != "" {
 				c.Set(echox.ContextKeyHeaderAllow, tc.allowContextKey)
 			}
@@ -553,6 +563,7 @@ func TestCorsHeaders(t *testing.T) {
 			} else {
 				expectedAllowOrigin = tc.originDomain
 			}
+
 			switch {
 			case tc.expected && tc.method == http.MethodOptions:
 				assert.Contains(t, rec.Header(), echox.HeaderAccessControlAllowMethods)
@@ -568,7 +579,6 @@ func TestCorsHeaders(t *testing.T) {
 				assert.Equal(t, 1, len(rec.Header()[echox.HeaderVary])) // Vary: Origin
 			}
 		})
-
 	}
 }
 
@@ -592,11 +602,13 @@ func Test_allowOriginFunc(t *testing.T) {
 	const origin = "http://example.com"
 
 	e := echox.New()
+
 	for _, allowOriginFunc := range allowOriginFuncs {
 		req := httptest.NewRequest(http.MethodOptions, "/", nil)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		req.Header.Set(echox.HeaderOrigin, origin)
+
 		cors, err := CORSConfig{AllowOriginFunc: allowOriginFunc}.ToMiddleware()
 		assert.NoError(t, err)
 
@@ -607,6 +619,7 @@ func Test_allowOriginFunc(t *testing.T) {
 		if expectedErr != nil {
 			assert.Equal(t, expectedErr, err)
 			assert.Equal(t, "", rec.Header().Get(echox.HeaderAccessControlAllowOrigin))
+
 			continue
 		}
 
