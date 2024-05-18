@@ -63,15 +63,16 @@ type StartConfig struct {
 func (sc StartConfig) Start(e *Echo) error {
 	logger := e.Logger
 	server := http.Server{
-		Handler: e,
-		// NB: all http.Server errors will be logged through Logger.Write calls. We could create writer that wraps
-		// logger and calls Logger.Error internally when http.Server logs error - atm we will use this naive way.
-		ErrorLog: log.New(logger, "", 0),
+		Handler:           e,
+		ErrorLog:          log.New(logger, "", 0),
+		ReadHeaderTimeout: 5 * time.Second, // Add ReadHeaderTimeout configuration
 	}
 
 	var tlsConfig *tls.Config = nil
 	if sc.TLSConfigFunc != nil {
-		tlsConfig = &tls.Config{}
+		tlsConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
+		}
 		configureTLS(&sc, tlsConfig)
 		sc.TLSConfigFunc(tlsConfig)
 	}
@@ -80,6 +81,7 @@ func (sc StartConfig) Start(e *Echo) error {
 	if err != nil {
 		return err
 	}
+
 	return serve(&sc, &server, listener, logger)
 }
 
@@ -92,27 +94,33 @@ func (sc StartConfig) StartTLS(e *Echo, certFile, keyFile interface{}) error {
 		Handler: e,
 		// NB: all http.Server errors will be logged through Logger.Write calls. We could create writer that wraps
 		// logger and calls Logger.Error internally when http.Server logs error - atm we will use this naive way.
-		ErrorLog: log.New(logger, "", 0),
+		ErrorLog:          log.New(logger, "", 0),
+		ReadHeaderTimeout: 5 * time.Second, // Add ReadHeaderTimeout configuration
 	}
 
 	certFs := sc.CertFilesystem
 	if certFs == nil {
 		certFs = os.DirFS(".")
 	}
+
 	cert, err := filepathOrContent(certFile, certFs)
 	if err != nil {
 		return err
 	}
+
 	key, err := filepathOrContent(keyFile, certFs)
 	if err != nil {
 		return err
 	}
+
 	cer, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		return err
 	}
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cer}, MinVersion: tls.VersionTLS12}
 	configureTLS(&sc, tlsConfig)
+
 	if sc.TLSConfigFunc != nil {
 		sc.TLSConfigFunc(tlsConfig)
 	}
@@ -121,6 +129,7 @@ func (sc StartConfig) StartTLS(e *Echo, certFile, keyFile interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	return serve(&sc, &s, listener, logger)
 }
 
@@ -130,13 +139,16 @@ func serve(sc *StartConfig, server *http.Server, listener net.Listener, logger L
 			return err
 		}
 	}
+
 	startupGreetings(sc, logger, listener)
 
 	if sc.GracefulContext != nil {
 		ctx, cancel := stdContext.WithCancel(sc.GracefulContext)
 		defer cancel() // make sure this graceful coroutine will end when serve returns by some other means
+
 		go gracefulShutdown(ctx, sc, server, logger)
 	}
+
 	return server.Serve(listener)
 }
 
@@ -153,12 +165,15 @@ func createListener(sc *StartConfig, tlsConfig *tls.Config) (net.Listener, error
 	}
 
 	var listener net.Listener
+
 	var err error
+
 	if tlsConfig != nil {
 		listener, err = tls.Listen(listenerNetwork, sc.Address, tlsConfig)
 	} else {
 		listener, err = net.Listen(listenerNetwork, sc.Address)
 	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -166,17 +181,18 @@ func createListener(sc *StartConfig, tlsConfig *tls.Config) (net.Listener, error
 	if sc.ListenerAddrFunc != nil {
 		sc.ListenerAddrFunc(listener.Addr())
 	}
+
 	return listener, nil
 }
 
 func startupGreetings(sc *StartConfig, logger Logger, listener net.Listener) {
 	if !sc.HideBanner {
 		bannerText := fmt.Sprintf(banner, Version)
-		logger.Write([]byte(bannerText))
+		logger.Write([]byte(bannerText)) // nolint: errcheck
 	}
 
 	if !sc.HidePort {
-		logger.Write([]byte(fmt.Sprintf("http(s) server started on %s", listener.Addr())))
+		logger.Write([]byte(fmt.Sprintf("http(s) server started on %s", listener.Addr()))) // nolint: errcheck
 	}
 }
 
@@ -199,7 +215,9 @@ func gracefulShutdown(gracefulCtx stdContext.Context, sc *StartConfig, server *h
 	if timeout == 0 {
 		timeout = 10 * time.Second
 	}
+
 	shutdownCtx, cancel := stdContext.WithTimeout(stdContext.Background(), timeout)
+
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
@@ -208,6 +226,7 @@ func gracefulShutdown(gracefulCtx stdContext.Context, sc *StartConfig, server *h
 			sc.OnShutdownError(err)
 			return
 		}
+
 		logger.Error(fmt.Errorf("failed to shut down server within given timeout: %w", err))
 	}
 }

@@ -1,11 +1,12 @@
 package middleware
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRewriteURL(t *testing.T) {
@@ -84,6 +85,7 @@ func TestRewriteURL(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, tc.expectPath, req.URL.Path)       // Path field is stored in decoded form: /%47%6f%2f becomes /Go/.
 			assert.Equal(t, tc.expectRawPath, req.URL.RawPath) // RawPath, an optional field which only gets set if the default encoding is different from Path.
 			assert.Equal(t, tc.expectQuery, req.URL.RawQuery)

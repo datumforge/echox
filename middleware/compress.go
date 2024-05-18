@@ -67,12 +67,15 @@ func (config GzipConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.Level < -2 || config.Level > 9 { // these are consts: gzip.HuffmanOnly and gzip.BestCompression
 		return nil, errors.New("invalid gzip level")
 	}
+
 	if config.Level == 0 {
 		config.Level = -1
 	}
+
 	if config.MinLength < 0 {
 		config.MinLength = 0
 	}
@@ -88,14 +91,18 @@ func (config GzipConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 			res := c.Response()
 			res.Header().Add(echox.HeaderVary, echox.HeaderAcceptEncoding)
+
 			if strings.Contains(c.Request().Header.Get(echox.HeaderAcceptEncoding), gzipScheme) {
 				i := pool.Get()
 				w, ok := i.(*gzip.Writer)
+
 				if !ok {
 					return echox.NewHTTPErrorWithInternal(http.StatusInternalServerError, i.(error))
 				}
+
 				rw := res.Writer
 				w.Reset(rw)
+
 				buf := bpool.Get().(*bytes.Buffer)
 				buf.Reset()
 
@@ -108,6 +115,7 @@ func (config GzipConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 						if res.Header().Get(echox.HeaderContentEncoding) == gzipScheme {
 							res.Header().Del(echox.HeaderContentEncoding)
 						}
+
 						if grw.wroteHeader {
 							rw.WriteHeader(grw.code)
 						}
@@ -115,22 +123,28 @@ func (config GzipConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 						// nothing is written to body or error is returned.
 						// See issue #424, #407.
 						res.Writer = rw
+
 						w.Reset(io.Discard)
 					} else if !grw.minLengthExceeded {
 						// Write uncompressed response
 						res.Writer = rw
+
 						if grw.wroteHeader {
 							grw.ResponseWriter.WriteHeader(grw.code)
 						}
-						grw.buffer.WriteTo(rw)
+
+						grw.buffer.WriteTo(rw) // nolint: errcheck
 						w.Reset(io.Discard)
 					}
+
 					w.Close()
 					bpool.Put(buf)
 					pool.Put(w)
 				}()
+
 				res.Writer = grw
 			}
+
 			return next(c)
 		}
 	}, nil
@@ -149,6 +163,7 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	if w.Header().Get(echox.HeaderContentType) == "" {
 		w.Header().Set(echox.HeaderContentType, http.DetectContentType(b))
 	}
+
 	w.wroteBody = true
 
 	if !w.minLengthExceeded {
@@ -159,6 +174,7 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 
 			// The minimum length is exceeded, add Content-Encoding header and write the header
 			w.Header().Set(echox.HeaderContentEncoding, gzipScheme) // Issue #806
+
 			if w.wroteHeader {
 				w.ResponseWriter.WriteHeader(w.code)
 			}
@@ -177,14 +193,16 @@ func (w *gzipResponseWriter) Flush() {
 		// Enforce compression because we will not know how much more data will come
 		w.minLengthExceeded = true
 		w.Header().Set(echox.HeaderContentEncoding, gzipScheme) // Issue #806
+
 		if w.wroteHeader {
 			w.ResponseWriter.WriteHeader(w.code)
 		}
 
-		w.Writer.Write(w.buffer.Bytes())
+		w.Writer.Write(w.buffer.Bytes()) // nolint: errcheck
 	}
 
 	w.Writer.(*gzip.Writer).Flush()
+
 	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
 	}
@@ -198,6 +216,7 @@ func (w *gzipResponseWriter) Push(target string, opts *http.PushOptions) error {
 	if p, ok := w.ResponseWriter.(http.Pusher); ok {
 		return p.Push(target, opts)
 	}
+
 	return http.ErrNotSupported
 }
 

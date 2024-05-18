@@ -57,10 +57,12 @@ func (r *Response) WriteHeader(code int) {
 		r.echo.Logger.Error(errHeaderAlreadyCommitted)
 		return
 	}
+
 	r.Status = code
 	for _, fn := range r.beforeFuncs {
 		fn()
 	}
+
 	r.Writer.WriteHeader(r.Status)
 	r.Committed = true
 }
@@ -71,13 +73,17 @@ func (r *Response) Write(b []byte) (n int, err error) {
 		if r.Status == 0 {
 			r.Status = http.StatusOK
 		}
+
 		r.WriteHeader(r.Status)
 	}
+
 	n, err = r.Writer.Write(b)
+
 	r.Size += int64(n)
 	for _, fn := range r.afterFuncs {
 		fn()
 	}
+
 	return
 }
 

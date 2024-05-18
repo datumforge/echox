@@ -113,22 +113,28 @@ func (config SecureConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if config.XSSProtection != "" {
 				res.Header().Set(echox.HeaderXXSSProtection, config.XSSProtection)
 			}
+
 			if config.ContentTypeNosniff != "" {
 				res.Header().Set(echox.HeaderXContentTypeOptions, config.ContentTypeNosniff)
 			}
+
 			if config.XFrameOptions != "" {
 				res.Header().Set(echox.HeaderXFrameOptions, config.XFrameOptions)
 			}
+
 			if (c.IsTLS() || (req.Header.Get(echox.HeaderXForwardedProto) == "https")) && config.HSTSMaxAge != 0 {
 				subdomains := ""
 				if !config.HSTSExcludeSubdomains {
 					subdomains = "; includeSubdomains"
 				}
+
 				if config.HSTSPreloadEnabled {
 					subdomains = fmt.Sprintf("%s; preload", subdomains)
 				}
+
 				res.Header().Set(echox.HeaderStrictTransportSecurity, fmt.Sprintf("max-age=%d%s", config.HSTSMaxAge, subdomains))
 			}
+
 			if config.ContentSecurityPolicy != "" {
 				if config.CSPReportOnly {
 					res.Header().Set(echox.HeaderContentSecurityPolicyReportOnly, config.ContentSecurityPolicy)
@@ -136,9 +142,11 @@ func (config SecureConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					res.Header().Set(echox.HeaderContentSecurityPolicy, config.ContentSecurityPolicy)
 				}
 			}
+
 			if config.ReferrerPolicy != "" {
 				res.Header().Set(echox.HeaderReferrerPolicy, config.ReferrerPolicy)
 			}
+
 			return next(c)
 		}
 	}, nil

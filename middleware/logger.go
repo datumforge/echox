@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/datumforge/echox"
 	"github.com/valyala/fasttemplate"
+
+	"github.com/datumforge/echox"
 )
 
 // LoggerConfig defines the config for Logger middleware.
@@ -97,6 +98,7 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultLoggerConfig.Skipper
 	}
+
 	if config.Format == "" {
 		config.Format = DefaultLoggerConfig.Format
 	}
@@ -118,12 +120,14 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			res := c.Response()
 
 			start := time.Now()
+
 			err := next(c)
 			if err != nil {
 				// When global error handler writes the error to the client the Response gets "committed". This state can be
 				// checked with `c.Response().Committed` field.
 				c.Error(err)
 			}
+
 			stop := time.Now()
 
 			buf := config.pool.Get().(*bytes.Buffer)
@@ -136,6 +140,7 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					if config.CustomTagFunc == nil {
 						return 0, nil
 					}
+
 					return config.CustomTagFunc(c, buf)
 				case "time_unix":
 					return buf.WriteString(strconv.FormatInt(stop.Unix(), 10))
@@ -156,6 +161,7 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					if id == "" {
 						id = res.Header().Get(echox.HeaderXRequestID)
 					}
+
 					return buf.WriteString(id)
 				case "remote_ip":
 					return buf.WriteString(c.RealIP())
@@ -170,6 +176,7 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					if p == "" {
 						p = "/"
 					}
+
 					return buf.WriteString(p)
 				case "route":
 					return buf.WriteString(c.Path())
@@ -181,18 +188,21 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					return buf.WriteString(req.UserAgent())
 				case "status":
 					status := res.Status
+
 					if err != nil {
 						var httpErr *echox.HTTPError
 						if errors.As(err, &httpErr) {
 							status = httpErr.Code
 						}
 					}
+
 					return buf.WriteString(strconv.Itoa(status))
 				case "error":
 					if err != nil {
 						// Error may contain invalid JSON e.g. `"`
 						b, _ := json.Marshal(err.Error())
 						b = b[1 : len(b)-1]
+
 						return buf.Write(b)
 					}
 				case "latency":
@@ -205,6 +215,7 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					if cl == "" {
 						cl = "0"
 					}
+
 					return buf.WriteString(cl)
 				case "bytes_out":
 					return buf.WriteString(strconv.FormatInt(res.Size, 10))
@@ -223,12 +234,14 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 						}
 					}
 				}
+
 				return 0, nil
 			})
 			if tmplErr != nil {
 				if err != nil {
 					return fmt.Errorf("error in middleware chain and also failed to create log from template: %v: %w", tmplErr, err)
 				}
+
 				return fmt.Errorf("failed to create log from template: %w", tmplErr)
 			}
 
@@ -241,6 +254,7 @@ func (config LoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					return lErr
 				}
 			}
+
 			return err
 		}
 	}, nil

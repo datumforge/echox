@@ -52,9 +52,11 @@ func (config BasicAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Validator == nil {
 		return nil, errors.New("echo basic-auth middleware requires a validator function")
 	}
+
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.Realm == "" {
 		config.Realm = defaultRealm
 	}
@@ -66,6 +68,7 @@ func (config BasicAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			}
 
 			var lastError error
+
 			l := len(basic)
 			for _, auth := range c.Request().Header[echox.HeaderAuthorization] {
 				if !(len(auth) > l+1 && strings.EqualFold(auth[:l], basic)) {
@@ -79,6 +82,7 @@ func (config BasicAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					lastError = echox.NewHTTPError(http.StatusBadRequest).WithInternal(errDecode)
 					continue
 				}
+
 				idx := bytes.IndexByte(b, ':')
 				if idx >= 0 {
 					valid, errValidate := config.Validator(c, string(b[:idx]), string(b[idx+1:]))
@@ -101,6 +105,7 @@ func (config BasicAuthConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 			// Need to return `401` for browsers to pop-up login box.
 			c.Response().Header().Set(echox.HeaderWWWAuthenticate, basic+" realm="+realm)
+
 			return echox.ErrUnauthorized
 		}
 	}, nil

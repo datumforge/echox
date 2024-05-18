@@ -217,7 +217,7 @@ const (
 	HeaderXFrameOptions                   = "X-Frame-Options"
 	HeaderContentSecurityPolicy           = "Content-Security-Policy"
 	HeaderContentSecurityPolicyReportOnly = "Content-Security-Policy-Report-Only"
-	HeaderXCSRFToken                      = "X-CSRF-Token"
+	HeaderXCSRFToken                      = "X-CSRF-Token" // nolint: gosec
 	HeaderReferrerPolicy                  = "Referrer-Policy"
 )
 
@@ -260,6 +260,7 @@ func New() *Echo {
 	e.contextPool.New = func() interface{} {
 		return e.NewContext(nil, nil)
 	}
+
 	return e
 }
 
@@ -274,8 +275,10 @@ func (e *Echo) NewContext(r *http.Request, w http.ResponseWriter) Context {
 	} else {
 		c = NewDefaultContext(e, e.contextPathParamAllocSize)
 	}
+
 	c.SetRequest(r)
 	c.SetResponse(NewResponse(w, e))
+
 	return c
 }
 
@@ -290,6 +293,7 @@ func (e *Echo) Routers() map[string]Router {
 	for host, r := range e.routers {
 		result[host] = r
 	}
+
 	return result
 }
 
@@ -298,7 +302,9 @@ func (e *Echo) RouterFor(host string) (Router, bool) {
 	if host == "" {
 		return e.router, true
 	}
+
 	router, ok := e.routers[host]
+
 	return router, ok
 }
 
@@ -316,7 +322,7 @@ func (e *Echo) ResetRouterCreator(creator func(e *Echo) Router) {
 // Note: DefaultHTTPErrorHandler does not log errors. Use middleware for it if errors need to be logged (separately)
 // Note: In case errors happens in middleware call-chain that is returning from handler (which did not return an error).
 // When handler has already sent response (ala c.JSON()) and there is error in middleware that is returning from
-// handler. Then the error that global error handler received will be ignored because we have already "commited" the
+// handler. Then the error that global error handler received will be ignored because we have already "committed" the
 // response and status code header has been sent to the client.
 func DefaultHTTPErrorHandler(exposeError bool) HTTPErrorHandler {
 	return func(c Context, err error) {
@@ -337,6 +343,7 @@ func DefaultHTTPErrorHandler(exposeError bool) HTTPErrorHandler {
 		// Issue #1426
 		code := he.Code
 		message := he.Message
+
 		switch m := he.Message.(type) {
 		case string:
 			if exposeError {
@@ -357,6 +364,7 @@ func DefaultHTTPErrorHandler(exposeError bool) HTTPErrorHandler {
 		} else {
 			cErr = c.JSON(code, message)
 		}
+
 		if cErr != nil {
 			c.Echo().Logger.Error(err) // truly rare case. ala client already disconnected
 		}
@@ -446,6 +454,7 @@ func (e *Echo) RouteNotFound(path string, h HandlerFunc, m ...MiddlewareFunc) Ro
 func (e *Echo) Any(path string, handler HandlerFunc, middleware ...MiddlewareFunc) Routes {
 	errs := make([]error, 0)
 	ris := make(Routes, 0)
+
 	for _, m := range methods {
 		ri, err := e.AddRoute(Route{
 			Method:      m,
@@ -457,11 +466,14 @@ func (e *Echo) Any(path string, handler HandlerFunc, middleware ...MiddlewareFun
 			errs = append(errs, err)
 			continue
 		}
+
 		ris = append(ris, ri)
 	}
+
 	if len(errs) > 0 {
 		panic(errs) // this is how `v4` handles errors. `v5` has methods to have panic-free usage
 	}
+
 	return ris
 }
 
@@ -470,6 +482,7 @@ func (e *Echo) Any(path string, handler HandlerFunc, middleware ...MiddlewareFun
 func (e *Echo) Match(methods []string, path string, handler HandlerFunc, middleware ...MiddlewareFunc) Routes {
 	errs := make([]error, 0)
 	ris := make(Routes, 0)
+
 	for _, m := range methods {
 		ri, err := e.AddRoute(Route{
 			Method:      m,
@@ -481,17 +494,21 @@ func (e *Echo) Match(methods []string, path string, handler HandlerFunc, middlew
 			errs = append(errs, err)
 			continue
 		}
+
 		ris = append(ris, ri)
 	}
+
 	if len(errs) > 0 {
 		panic(errs) // this is how `v4` handles errors. `v5` has methods to have panic-free usage
 	}
+
 	return ris
 }
 
 // Static registers a new route with path prefix to serve static files from the provided root directory.
 func (e *Echo) Static(pathPrefix, fsRoot string) RouteInfo {
 	subFs := MustSubFS(e.Filesystem, fsRoot)
+
 	return e.Add(
 		http.MethodGet,
 		pathPrefix+"*",
@@ -522,11 +539,13 @@ func StaticDirectoryHandler(fileSystem fs.FS, disablePathUnescaping bool) Handle
 			if err != nil {
 				return fmt.Errorf("failed to unescape path variable: %w", err)
 			}
+
 			p = tmpPath
 		}
 
 		// fs.FS.Open() already assumes that file names are relative to FS root path and considers name with prefix `/` as invalid
 		name := filepath.ToSlash(filepath.Clean(strings.TrimPrefix(p, "/")))
+
 		fi, err := fs.Stat(fileSystem, name)
 		if err != nil {
 			return ErrNotFound
@@ -538,6 +557,7 @@ func StaticDirectoryHandler(fileSystem fs.FS, disablePathUnescaping bool) Handle
 			// Redirect to ends with "/"
 			return c.Redirect(http.StatusMovedPermanently, sanitizeURI(p+"/"))
 		}
+
 		return fsFile(c, name, fileSystem)
 	}
 }
@@ -559,6 +579,7 @@ func (e *Echo) File(path, file string, middleware ...MiddlewareFunc) RouteInfo {
 	handler := func(c Context) error {
 		return c.File(file)
 	}
+
 	return e.Add(http.MethodGet, path, handler, middleware...)
 }
 
@@ -575,6 +596,7 @@ func (e *Echo) add(host string, route Routable) (RouteInfo, error) {
 	}
 
 	router := e.findRouter(host)
+
 	ri, err := router.Add(route)
 	if err != nil {
 		return nil, err
@@ -584,6 +606,7 @@ func (e *Echo) add(host string, route Routable) (RouteInfo, error) {
 	if paramsCount > e.contextPathParamAllocSize {
 		e.contextPathParamAllocSize = paramsCount
 	}
+
 	return ri, nil
 }
 
@@ -603,6 +626,7 @@ func (e *Echo) Add(method, path string, handler HandlerFunc, middleware ...Middl
 	if err != nil {
 		panic(err) // this is how `v4` handles errors. `v5` has methods to have panic-free usage
 	}
+
 	return ri
 }
 
@@ -611,6 +635,7 @@ func (e *Echo) Host(name string, m ...MiddlewareFunc) (g *Group) {
 	e.routers[name] = e.routerCreator(e)
 	g = &Group{host: name, echo: e}
 	g.Use(m...)
+
 	return
 }
 
@@ -618,6 +643,7 @@ func (e *Echo) Host(name string, m ...MiddlewareFunc) (g *Group) {
 func (e *Echo) Group(prefix string, m ...MiddlewareFunc) (g *Group) {
 	g = &Group{prefix: prefix, echo: e}
 	g.Use(m...)
+
 	return
 }
 
@@ -651,7 +677,9 @@ func (e *Echo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		c = e.contextPool.Get().(*DefaultContext)
 	}
+
 	c.Reset(r, w)
+
 	var h HandlerFunc
 
 	if e.premiddleware == nil {
@@ -695,8 +723,10 @@ func (e *Echo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //	}
 func (e *Echo) Start(address string) error {
 	sc := StartConfig{Address: address}
+
 	ctx, cancel := signal.NotifyContext(stdContext.Background(), os.Interrupt) // start shutdown process on ctrl+c
 	defer cancel()
+
 	sc.GracefulContext = ctx
 
 	return sc.Start(e)
@@ -719,6 +749,7 @@ func WrapMiddleware(m func(http.Handler) http.Handler) MiddlewareFunc {
 				c.SetResponse(NewResponse(w, c.Echo()))
 				err = next(c)
 			})).ServeHTTP(c.Response(), c.Request())
+
 			return
 		}
 	}
@@ -730,6 +761,7 @@ func (e *Echo) findRouter(host string) Router {
 			return r
 		}
 	}
+
 	return e.router
 }
 
@@ -737,6 +769,7 @@ func applyMiddleware(h HandlerFunc, middleware ...MiddlewareFunc) HandlerFunc {
 	for i := len(middleware) - 1; i >= 0; i-- {
 		h = middleware[i](h)
 	}
+
 	return h
 }
 
@@ -752,6 +785,7 @@ type defaultFS struct {
 
 func newDefaultFS() *defaultFS {
 	dir, _ := os.Getwd()
+
 	return &defaultFS{
 		prefix: dir,
 		fs:     nil,
@@ -762,6 +796,7 @@ func (fs defaultFS) Open(name string) (fs.File, error) {
 	if fs.fs == nil {
 		return os.Open(name)
 	}
+
 	return fs.fs.Open(name)
 }
 
@@ -774,11 +809,13 @@ func subFS(currentFs fs.FS, root string) (fs.FS, error) {
 		if !filepath.IsAbs(root) {
 			root = filepath.Join(dFS.prefix, root)
 		}
+
 		return &defaultFS{
 			prefix: root,
 			fs:     os.DirFS(root),
 		}, nil
 	}
+
 	return fs.Sub(currentFs, root)
 }
 
@@ -793,6 +830,7 @@ func MustSubFS(currentFs fs.FS, fsRoot string) fs.FS {
 	if err != nil {
 		panic(fmt.Errorf("can not create sub FS, invalid root given, err: %w", err))
 	}
+
 	return subFs
 }
 
@@ -802,5 +840,6 @@ func sanitizeURI(uri string) string {
 	if len(uri) > 1 && (uri[0] == '\\' || uri[0] == '/') && (uri[1] == '\\' || uri[1] == '/') {
 		uri = "/" + strings.TrimLeft(uri, `/\`)
 	}
+
 	return uri
 }

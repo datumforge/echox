@@ -33,9 +33,11 @@ func BindPathParams(c Context, i interface{}) error {
 	for _, param := range c.PathParams() {
 		params[param.Name] = []string{param.Value}
 	}
+
 	if err := bindData(i, params, "param"); err != nil {
 		return NewHTTPErrorWithInternal(http.StatusBadRequest, err, err.Error())
 	}
+
 	return nil
 }
 
@@ -44,6 +46,7 @@ func BindQueryParams(c Context, i interface{}) error {
 	if err := bindData(i, c.QueryParams(), "query"); err != nil {
 		return NewHTTPErrorWithInternal(http.StatusBadRequest, err, err.Error())
 	}
+
 	return nil
 }
 
@@ -59,6 +62,7 @@ func BindBody(c Context, i interface{}) (err error) {
 	}
 
 	ctype := req.Header.Get(HeaderContentType)
+
 	switch {
 	case strings.HasPrefix(ctype, MIMEApplicationJSON):
 		if err = c.Echo().JSONSerializer.Deserialize(c, i); err != nil {
@@ -76,19 +80,24 @@ func BindBody(c Context, i interface{}) (err error) {
 			} else if se, ok := err.(*xml.SyntaxError); ok {
 				return NewHTTPErrorWithInternal(http.StatusBadRequest, err, fmt.Sprintf("Syntax error: line=%v, error=%v", se.Line, se.Error()))
 			}
+
 			return NewHTTPErrorWithInternal(http.StatusBadRequest, err, err.Error())
 		}
 	case strings.HasPrefix(ctype, MIMEApplicationForm), strings.HasPrefix(ctype, MIMEMultipartForm):
 		values, err := c.FormValues()
+
 		if err != nil {
 			return NewHTTPErrorWithInternal(http.StatusBadRequest, err, err.Error())
 		}
+
 		if err = bindData(i, values, "form"); err != nil {
 			return NewHTTPErrorWithInternal(http.StatusBadRequest, err, err.Error())
 		}
+
 	default:
 		return ErrUnsupportedMediaType
 	}
+
 	return nil
 }
 
@@ -97,6 +106,7 @@ func BindHeaders(c Context, i interface{}) error {
 	if err := bindData(i, c.Request().Header, "header"); err != nil {
 		return NewHTTPErrorWithInternal(http.StatusBadRequest, err, err.Error())
 	}
+
 	return nil
 }
 
@@ -116,6 +126,7 @@ func (b *DefaultBinder) Bind(c Context, i interface{}) (err error) {
 			return err
 		}
 	}
+
 	return BindBody(c, i)
 }
 
@@ -124,6 +135,7 @@ func bindData(destination interface{}, data map[string][]string, tag string) err
 	if destination == nil || len(data) == 0 {
 		return nil
 	}
+
 	typ := reflect.TypeOf(destination).Elem()
 	val := reflect.ValueOf(destination).Elem()
 
@@ -132,6 +144,7 @@ func bindData(destination interface{}, data map[string][]string, tag string) err
 		for k, v := range data {
 			val.SetMapIndex(reflect.ValueOf(k), reflect.ValueOf(v[0]))
 		}
+
 		return nil
 	}
 
@@ -141,22 +154,27 @@ func bindData(destination interface{}, data map[string][]string, tag string) err
 			// incompatible type, data is probably to be found in the body
 			return nil
 		}
+
 		return errors.New("binding element must be a struct")
 	}
 
 	for i := 0; i < typ.NumField(); i++ {
 		typeField := typ.Field(i)
+
 		structField := val.Field(i)
 		if typeField.Anonymous {
 			if structField.Kind() == reflect.Ptr {
 				structField = structField.Elem()
 			}
 		}
+
 		if !structField.CanSet() {
 			continue
 		}
+
 		structFieldKind := structField.Kind()
 		inputFieldName := typeField.Tag.Get(tag)
+
 		if typeField.Anonymous && structField.Kind() == reflect.Struct && inputFieldName != "" {
 			// if anonymous struct with query/param/form tags, report an error
 			return errors.New("query/param/form tags are not allowed with anonymous struct field")
@@ -182,6 +200,7 @@ func bindData(destination interface{}, data map[string][]string, tag string) err
 				if strings.EqualFold(k, inputFieldName) {
 					inputValue = v
 					exists = true
+
 					break
 				}
 			}
@@ -196,6 +215,7 @@ func bindData(destination interface{}, data map[string][]string, tag string) err
 			if err != nil {
 				return err
 			}
+
 			continue
 		}
 
@@ -203,6 +223,7 @@ func bindData(destination interface{}, data map[string][]string, tag string) err
 		if structFieldKind == reflect.Slice && numElems > 0 {
 			sliceOf := structField.Type().Elem().Kind()
 			slice := reflect.MakeSlice(structField.Type(), numElems, numElems)
+
 			for j := 0; j < numElems; j++ {
 				if err := setWithProperType(sliceOf, inputValue[j], slice.Index(j)); err != nil {
 					return err
@@ -211,9 +232,9 @@ func bindData(destination interface{}, data map[string][]string, tag string) err
 			val.Field(i).Set(slice)
 		} else if err := setWithProperType(typeField.Type.Kind(), inputValue[0], structField); err != nil {
 			return err
-
 		}
 	}
+
 	return nil
 }
 
@@ -257,6 +278,7 @@ func setWithProperType(valueKind reflect.Kind, val string, structField reflect.V
 	default:
 		return errors.New("unknown type")
 	}
+
 	return nil
 }
 
@@ -274,6 +296,7 @@ func unmarshalFieldNonPtr(value string, field reflect.Value) (bool, error) {
 	if unmarshaler, ok := fieldIValue.(BindUnmarshaler); ok {
 		return true, unmarshaler.UnmarshalParam(value)
 	}
+
 	if unmarshaler, ok := fieldIValue.(encoding.TextUnmarshaler); ok {
 		return true, unmarshaler.UnmarshalText([]byte(value))
 	}
@@ -286,6 +309,7 @@ func unmarshalFieldPtr(value string, field reflect.Value) (bool, error) {
 		// Initialize the pointer to a nil value
 		field.Set(reflect.New(field.Type().Elem()))
 	}
+
 	return unmarshalFieldNonPtr(value, field.Elem())
 }
 
@@ -293,10 +317,12 @@ func setIntField(value string, bitSize int, field reflect.Value) error {
 	if value == "" {
 		return nil
 	}
+
 	intVal, err := strconv.ParseInt(value, 10, bitSize)
 	if err == nil {
 		field.SetInt(intVal)
 	}
+
 	return err
 }
 
@@ -304,10 +330,12 @@ func setUintField(value string, bitSize int, field reflect.Value) error {
 	if value == "" {
 		return nil
 	}
+
 	uintVal, err := strconv.ParseUint(value, 10, bitSize)
 	if err == nil {
 		field.SetUint(uintVal)
 	}
+
 	return err
 }
 
@@ -315,10 +343,12 @@ func setBoolField(value string, field reflect.Value) error {
 	if value == "" {
 		return nil
 	}
+
 	boolVal, err := strconv.ParseBool(value)
 	if err == nil {
 		field.SetBool(boolVal)
 	}
+
 	return err
 }
 
@@ -326,9 +356,11 @@ func setFloatField(value string, bitSize int, field reflect.Value) error {
 	if value == "" {
 		return nil
 	}
+
 	floatVal, err := strconv.ParseFloat(value, bitSize)
 	if err == nil {
 		field.SetFloat(floatVal)
 	}
+
 	return err
 }

@@ -217,6 +217,7 @@ func RequestLoggerWithConfig(config RequestLoggerConfig) echox.MiddlewareFunc {
 	if err != nil {
 		panic(err)
 	}
+
 	return mw
 }
 
@@ -225,6 +226,7 @@ func (config RequestLoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	now := time.Now
 	if config.timeNow != nil {
 		now = config.timeNow
@@ -235,6 +237,7 @@ func (config RequestLoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	}
 
 	logHeaders := len(config.LogHeaders) > 0
+
 	headers := append([]string(nil), config.LogHeaders...)
 	for i, v := range headers {
 		headers[i] = http.CanonicalHeaderKey(v)
@@ -256,6 +259,7 @@ func (config RequestLoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if config.BeforeNextFunc != nil {
 				config.BeforeNextFunc(c)
 			}
+
 			err := next(c)
 			if err != nil && config.HandleError {
 				// When global error handler writes the error to the client the Response gets "committed". This state can be
@@ -269,46 +273,60 @@ func (config RequestLoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if config.LogLatency {
 				v.Latency = now().Sub(start)
 			}
+
 			if config.LogProtocol {
 				v.Protocol = req.Proto
 			}
+
 			if config.LogRemoteIP {
 				v.RemoteIP = c.RealIP()
 			}
+
 			if config.LogHost {
 				v.Host = req.Host
 			}
+
 			if config.LogMethod {
 				v.Method = req.Method
 			}
+
 			if config.LogURI {
 				v.URI = req.RequestURI
 			}
+
 			if config.LogURIPath {
 				p := req.URL.Path
 				if p == "" {
 					p = "/"
 				}
+
 				v.URIPath = p
 			}
+
 			if config.LogRoutePath {
 				v.RoutePath = c.Path()
 			}
+
 			if config.LogRequestID {
 				id := req.Header.Get(echox.HeaderXRequestID)
 				if id == "" {
 					id = res.Header().Get(echox.HeaderXRequestID)
 				}
+
 				v.RequestID = id
 			}
+
 			if config.LogReferer {
 				v.Referer = req.Referer()
 			}
+
 			if config.LogUserAgent {
 				v.UserAgent = req.UserAgent()
 			}
+
 			if config.LogStatus {
 				v.Status = res.Status
+
 				if err != nil && !config.HandleError {
 					//  this block should not be executed in case of HandleError=true as the global error handler will decide
 					//  the status code. In that case status code could be different from what err contains.
@@ -318,34 +336,43 @@ func (config RequestLoggerConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 					}
 				}
 			}
+
 			if config.LogError && err != nil {
 				v.Error = err
 			}
+
 			if config.LogContentLength {
 				v.ContentLength = req.Header.Get(echox.HeaderContentLength)
 			}
+
 			if config.LogResponseSize {
 				v.ResponseSize = res.Size
 			}
+
 			if logHeaders {
 				v.Headers = map[string][]string{}
+
 				for _, header := range headers {
 					if values, ok := req.Header[header]; ok {
 						v.Headers[header] = values
 					}
 				}
 			}
+
 			if logQueryParams {
 				queryParams := c.QueryParams()
 				v.QueryParams = map[string][]string{}
+
 				for _, param := range config.LogQueryParams {
 					if values, ok := queryParams[param]; ok {
 						v.QueryParams[param] = values
 					}
 				}
 			}
+
 			if logFormValues {
 				v.FormValues = map[string][]string{}
+
 				for _, formValue := range config.LogFormValues {
 					if values, ok := req.Form[formValue]; ok {
 						v.FormValues[formValue] = values

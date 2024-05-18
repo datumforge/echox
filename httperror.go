@@ -41,6 +41,7 @@ func NewHTTPError(code int, message ...interface{}) *HTTPError { // FIXME: this 
 	if len(message) > 0 {
 		he.Message = message[0]
 	}
+
 	return he
 }
 
@@ -48,6 +49,7 @@ func NewHTTPError(code int, message ...interface{}) *HTTPError { // FIXME: this 
 func NewHTTPErrorWithInternal(code int, internalError error, message ...interface{}) *HTTPError {
 	he := NewHTTPError(code, message...)
 	he.Internal = internalError
+
 	return he
 }
 
@@ -56,6 +58,7 @@ func (he *HTTPError) Error() string {
 	if he.Internal == nil {
 		return fmt.Sprintf("code=%d, message=%v", he.Code, he.Message)
 	}
+
 	return fmt.Sprintf("code=%d, message=%v, internal=%v", he.Code, he.Message, he.Internal)
 }
 

@@ -153,6 +153,7 @@ func proxyRaw(c echox.Context, t *ProxyTarget) http.Handler {
 
 		go cp(out, in)
 		go cp(in, out)
+
 		err = <-errCh
 		if err != nil && err != io.EOF {
 			c.Set("_error", fmt.Errorf("proxy raw, copy body error=%w, url=%s", err, t.URL))
@@ -164,7 +165,8 @@ func proxyRaw(c echox.Context, t *ProxyTarget) http.Handler {
 func NewRandomBalancer(targets []*ProxyTarget) ProxyBalancer {
 	b := randomBalancer{}
 	b.targets = targets
-	b.random = rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+	b.random = rand.New(rand.NewSource(int64(time.Now().Nanosecond()))) // nolint: gosec
+
 	return &b
 }
 
@@ -172,6 +174,7 @@ func NewRandomBalancer(targets []*ProxyTarget) ProxyBalancer {
 func NewRoundRobinBalancer(targets []*ProxyTarget) ProxyBalancer {
 	b := roundRobinBalancer{}
 	b.targets = targets
+
 	return &b
 }
 
@@ -181,12 +184,15 @@ func NewRoundRobinBalancer(targets []*ProxyTarget) ProxyBalancer {
 func (b *commonBalancer) AddTarget(target *ProxyTarget) bool {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	for _, t := range b.targets {
 		if t.Name == target.Name {
 			return false
 		}
 	}
+
 	b.targets = append(b.targets, target)
+
 	return true
 }
 
@@ -196,12 +202,14 @@ func (b *commonBalancer) AddTarget(target *ProxyTarget) bool {
 func (b *commonBalancer) RemoveTarget(name string) bool {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	for i, t := range b.targets {
 		if t.Name == name {
 			b.targets = append(b.targets[:i], b.targets[i+1:]...)
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -211,11 +219,13 @@ func (b *commonBalancer) RemoveTarget(name string) bool {
 func (b *randomBalancer) Next(c echox.Context) (*ProxyTarget, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	if len(b.targets) == 0 {
 		return nil, nil
 	} else if len(b.targets) == 1 {
 		return b.targets[0], nil
 	}
+
 	return b.targets[b.random.Intn(len(b.targets))], nil
 }
 
@@ -230,6 +240,7 @@ func (b *randomBalancer) Next(c echox.Context) (*ProxyTarget, error) {
 func (b *roundRobinBalancer) Next(c echox.Context) (*ProxyTarget, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	if len(b.targets) == 0 {
 		return nil, nil
 	} else if len(b.targets) == 1 {
@@ -237,6 +248,7 @@ func (b *roundRobinBalancer) Next(c echox.Context) (*ProxyTarget, error) {
 	}
 
 	var i int
+
 	const lastIdxKey = "_round_robin_last_index"
 	// This request is a retry, start from the index of the previous
 	// target to ensure we don't attempt to retry the request with
@@ -244,6 +256,7 @@ func (b *roundRobinBalancer) Next(c echox.Context) (*ProxyTarget, error) {
 	if c.Get(lastIdxKey) != nil {
 		i = c.Get(lastIdxKey).(int)
 		i++
+
 		if i >= len(b.targets) {
 			i = 0
 		}
@@ -252,10 +265,13 @@ func (b *roundRobinBalancer) Next(c echox.Context) (*ProxyTarget, error) {
 		if b.i >= len(b.targets) {
 			b.i = 0
 		}
+
 		i = b.i
 		b.i++
 	}
+
 	c.Set(lastIdxKey, i)
+
 	return b.targets[i], nil
 }
 
@@ -265,6 +281,7 @@ func (b *roundRobinBalancer) Next(c echox.Context) (*ProxyTarget, error) {
 func Proxy(balancer ProxyBalancer) echox.MiddlewareFunc {
 	c := DefaultProxyConfig
 	c.Balancer = balancer
+
 	return ProxyWithConfig(c)
 }
 
@@ -280,20 +297,25 @@ func (config ProxyConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultProxyConfig.Skipper
 	}
+
 	if config.ContextKey == "" {
 		config.ContextKey = DefaultProxyConfig.ContextKey
 	}
+
 	if config.Balancer == nil {
 		return nil, errors.New("echo proxy middleware requires balancer")
 	}
+
 	if config.RetryFilter == nil {
 		config.RetryFilter = func(c echox.Context, e error) bool {
 			if httpErr, ok := e.(*echox.HTTPError); ok {
 				return httpErr.Code == http.StatusBadGateway
 			}
+
 			return false
 		}
 	}
+
 	if config.ErrorHandler == nil {
 		config.ErrorHandler = func(c echox.Context, err error) error {
 			return err
@@ -304,6 +326,7 @@ func (config ProxyConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 		if config.RegexRewrite == nil {
 			config.RegexRewrite = make(map[*regexp.Regexp]string)
 		}
+
 		for k, v := range rewriteRulesRegex(config.Rewrite) {
 			config.RegexRewrite[k] = v
 		}
@@ -317,6 +340,7 @@ func (config ProxyConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 			req := c.Request()
 			res := c.Response()
+
 			if err := rewriteURL(config.RegexRewrite, req); err != nil {
 				return config.ErrorHandler(c, err)
 			}
@@ -327,14 +351,17 @@ func (config ProxyConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if req.Header.Get(echox.HeaderXRealIP) == "" || c.Echo().IPExtractor != nil {
 				req.Header.Set(echox.HeaderXRealIP, c.RealIP())
 			}
+
 			if req.Header.Get(echox.HeaderXForwardedProto) == "" {
 				req.Header.Set(echox.HeaderXForwardedProto, c.Scheme())
 			}
+
 			if c.IsWebSocket() && req.Header.Get(echox.HeaderXForwardedFor) == "" { // For HTTP, it is automatically set by Go HTTP reverse proxy.
 				req.Header.Set(echox.HeaderXForwardedFor, c.RealIP())
 			}
 
 			retries := config.RetryCount
+
 			for {
 				tgt, err := config.Balancer.Next(c)
 				if err != nil {
@@ -343,9 +370,9 @@ func (config ProxyConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 				c.Set(config.ContextKey, tgt)
 
-				//If retrying a failed request, clear any previous errors from
-				//context here so that balancers have the option to check for
-				//errors that occurred using previous target
+				// If retrying a failed request, clear any previous errors from
+				// context here so that balancers have the option to check for
+				// errors that occurred using previous target
 				if retries < config.RetryCount {
 					c.Set("_error", nil)
 				}
@@ -406,5 +433,6 @@ func proxyHTTP(c echox.Context, tgt *ProxyTarget, config ProxyConfig) http.Handl
 	}
 	proxy.Transport = config.Transport
 	proxy.ModifyResponse = config.ModifyResponse
+
 	return proxy
 }

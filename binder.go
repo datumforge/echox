@@ -159,10 +159,13 @@ func FormFieldBinder(c Context) *ValueBinder {
 			// this is same as `Request().FormValue()` does internally
 			_ = c.Request().ParseMultipartForm(32 << 20)
 		}
+
 		values, ok := c.Request().Form[sourceParam]
+
 		if !ok {
 			return nil
 		}
+
 		return values
 	}
 
@@ -173,6 +176,7 @@ func FormFieldBinder(c Context) *ValueBinder {
 // NB: call this method before any other binding methods as it modifies binding methods behaviour
 func (b *ValueBinder) FailFast(value bool) *ValueBinder {
 	b.failFast = value
+
 	return b
 }
 
@@ -181,6 +185,7 @@ func (b *ValueBinder) setError(err error) {
 		b.errors = []error{err}
 		return
 	}
+
 	b.errors = append(b.errors, err)
 }
 
@@ -189,8 +194,10 @@ func (b *ValueBinder) BindError() error {
 	if b.errors == nil {
 		return nil
 	}
+
 	err := b.errors[0]
 	b.errors = nil // reset errors so next chain will start from zero
+
 	return err
 }
 
@@ -199,8 +206,10 @@ func (b *ValueBinder) BindErrors() []error {
 	if b.errors == nil {
 		return nil
 	}
+
 	errors := b.errors
 	b.errors = nil // reset errors so next chain will start from zero
+
 	return errors
 }
 
@@ -224,11 +233,14 @@ func (b *ValueBinder) customFunc(sourceParam string, customFunc func(values []st
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	if errs := customFunc(values); errs != nil {
 		b.errors = append(b.errors, errs...)
 	}
+
 	return b
 }
 
@@ -242,7 +254,9 @@ func (b *ValueBinder) String(sourceParam string, dest *string) *ValueBinder {
 	if value == "" {
 		return b
 	}
+
 	*dest = value
+
 	return b
 }
 
@@ -257,7 +271,9 @@ func (b *ValueBinder) MustString(sourceParam string, dest *string) *ValueBinder 
 		b.setError(b.ErrorFunc(sourceParam, []string{value}, "required field value is empty", nil))
 		return b
 	}
+
 	*dest = value
+
 	return b
 }
 
@@ -271,7 +287,9 @@ func (b *ValueBinder) Strings(sourceParam string, dest *[]string) *ValueBinder {
 	if value == nil {
 		return b
 	}
+
 	*dest = value
+
 	return b
 }
 
@@ -286,7 +304,9 @@ func (b *ValueBinder) MustStrings(sourceParam string, dest *[]string) *ValueBind
 		b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		return b
 	}
+
 	*dest = value
+
 	return b
 }
 
@@ -304,6 +324,7 @@ func (b *ValueBinder) BindUnmarshaler(sourceParam string, dest BindUnmarshaler) 
 	if err := dest.UnmarshalParam(tmp); err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{tmp}, "failed to bind field value to BindUnmarshaler interface", err))
 	}
+
 	return b
 }
 
@@ -323,6 +344,7 @@ func (b *ValueBinder) MustBindUnmarshaler(sourceParam string, dest BindUnmarshal
 	if err := dest.UnmarshalParam(value); err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{value}, "failed to bind field value to BindUnmarshaler interface", err))
 	}
+
 	return b
 }
 
@@ -340,6 +362,7 @@ func (b *ValueBinder) JSONUnmarshaler(sourceParam string, dest json.Unmarshaler)
 	if err := dest.UnmarshalJSON([]byte(tmp)); err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{tmp}, "failed to bind field value to json.Unmarshaler interface", err))
 	}
+
 	return b
 }
 
@@ -359,6 +382,7 @@ func (b *ValueBinder) MustJSONUnmarshaler(sourceParam string, dest json.Unmarsha
 	if err := dest.UnmarshalJSON([]byte(tmp)); err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{tmp}, "failed to bind field value to json.Unmarshaler interface", err))
 	}
+
 	return b
 }
 
@@ -376,6 +400,7 @@ func (b *ValueBinder) TextUnmarshaler(sourceParam string, dest encoding.TextUnma
 	if err := dest.UnmarshalText([]byte(tmp)); err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{tmp}, "failed to bind field value to encoding.TextUnmarshaler interface", err))
 	}
+
 	return b
 }
 
@@ -395,6 +420,7 @@ func (b *ValueBinder) MustTextUnmarshaler(sourceParam string, dest encoding.Text
 	if err := dest.UnmarshalText([]byte(tmp)); err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{tmp}, "failed to bind field value to encoding.TextUnmarshaler interface", err))
 	}
+
 	return b
 }
 
@@ -414,14 +440,19 @@ func (b *ValueBinder) bindWithDelimiter(sourceParam string, dest interface{}, de
 	if b.failFast && b.errors != nil {
 		return b
 	}
+
 	values := b.ValuesFunc(sourceParam)
+
 	if len(values) == 0 {
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	tmpValues := make([]string, 0, len(values))
+
 	for _, v := range values {
 		tmpValues = append(tmpValues, strings.Split(v, delimiter)...)
 	}
@@ -444,6 +475,7 @@ func (b *ValueBinder) bindWithDelimiter(sourceParam string, dest interface{}, de
 		// support only cases when destination is slice
 		// does not support time.Time as it needs argument (layout) for parsing or BindUnmarshaler
 		b.setError(b.ErrorFunc(sourceParam, []string{}, "unsupported bind type", nil))
+
 		return b
 	}
 }
@@ -508,6 +540,7 @@ func (b *ValueBinder) intValue(sourceParam string, dest interface{}, bitSize int
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
 
@@ -522,6 +555,7 @@ func (b *ValueBinder) int(sourceParam string, value string, dest interface{}, bi
 		} else {
 			b.setError(b.ErrorFunc(sourceParam, []string{value}, fmt.Sprintf("failed to bind field value to int%v", bitSize), err))
 		}
+
 		return b
 	}
 
@@ -537,6 +571,7 @@ func (b *ValueBinder) int(sourceParam string, value string, dest interface{}, bi
 	case *int:
 		*d = int(n)
 	}
+
 	return b
 }
 
@@ -550,8 +585,10 @@ func (b *ValueBinder) intsValue(sourceParam string, dest interface{}, valueMustE
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, values, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	return b.ints(sourceParam, values, dest)
 }
 
@@ -561,58 +598,73 @@ func (b *ValueBinder) ints(sourceParam string, values []string, dest interface{}
 		tmp := make([]int64, len(values))
 		for i, v := range values {
 			b.int(sourceParam, v, &tmp[i], 64)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
+
 	case *[]int32:
 		tmp := make([]int32, len(values))
 		for i, v := range values {
 			b.int(sourceParam, v, &tmp[i], 32)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
+
 	case *[]int16:
 		tmp := make([]int16, len(values))
 		for i, v := range values {
 			b.int(sourceParam, v, &tmp[i], 16)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
+
 	case *[]int8:
 		tmp := make([]int8, len(values))
 		for i, v := range values {
 			b.int(sourceParam, v, &tmp[i], 8)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
+
 	case *[]int:
 		tmp := make([]int, len(values))
 		for i, v := range values {
 			b.int(sourceParam, v, &tmp[i], 0)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
 	}
+
 	return b
 }
 
@@ -736,6 +788,7 @@ func (b *ValueBinder) uintValue(sourceParam string, dest interface{}, bitSize in
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
 
@@ -750,6 +803,7 @@ func (b *ValueBinder) uint(sourceParam string, value string, dest interface{}, b
 		} else {
 			b.setError(b.ErrorFunc(sourceParam, []string{value}, fmt.Sprintf("failed to bind field value to uint%v", bitSize), err))
 		}
+
 		return b
 	}
 
@@ -765,6 +819,7 @@ func (b *ValueBinder) uint(sourceParam string, value string, dest interface{}, b
 	case *uint:
 		*d = uint(n)
 	}
+
 	return b
 }
 
@@ -778,8 +833,10 @@ func (b *ValueBinder) uintsValue(sourceParam string, dest interface{}, valueMust
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, values, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	return b.uints(sourceParam, values, dest)
 }
 
@@ -789,10 +846,12 @@ func (b *ValueBinder) uints(sourceParam string, values []string, dest interface{
 		tmp := make([]uint64, len(values))
 		for i, v := range values {
 			b.uint(sourceParam, v, &tmp[i], 64)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
@@ -800,21 +859,26 @@ func (b *ValueBinder) uints(sourceParam string, values []string, dest interface{
 		tmp := make([]uint32, len(values))
 		for i, v := range values {
 			b.uint(sourceParam, v, &tmp[i], 32)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
 	case *[]uint16:
 		tmp := make([]uint16, len(values))
+
 		for i, v := range values {
 			b.uint(sourceParam, v, &tmp[i], 16)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
@@ -822,10 +886,12 @@ func (b *ValueBinder) uints(sourceParam string, values []string, dest interface{
 		tmp := make([]uint8, len(values))
 		for i, v := range values {
 			b.uint(sourceParam, v, &tmp[i], 8)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
@@ -833,14 +899,17 @@ func (b *ValueBinder) uints(sourceParam string, values []string, dest interface{
 		tmp := make([]uint, len(values))
 		for i, v := range values {
 			b.uint(sourceParam, v, &tmp[i], 0)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
 	}
+
 	return b
 }
 
@@ -914,8 +983,10 @@ func (b *ValueBinder) boolValue(sourceParam string, dest *bool, valueMustExist b
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	return b.bool(sourceParam, value, dest)
 }
 
@@ -927,6 +998,7 @@ func (b *ValueBinder) bool(sourceParam string, value string, dest *bool) *ValueB
 	}
 
 	*dest = n
+
 	return b
 }
 
@@ -940,8 +1012,10 @@ func (b *ValueBinder) boolsValue(sourceParam string, dest *[]bool, valueMustExis
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	return b.bools(sourceParam, values, dest)
 }
 
@@ -949,13 +1023,16 @@ func (b *ValueBinder) bools(sourceParam string, values []string, dest *[]bool) *
 	tmp := make([]bool, len(values))
 	for i, v := range values {
 		b.bool(sourceParam, v, &tmp[i])
+
 		if b.failFast && b.errors != nil {
 			return b
 		}
 	}
+
 	if b.errors == nil {
 		*dest = tmp
 	}
+
 	return b
 }
 
@@ -999,6 +1076,7 @@ func (b *ValueBinder) floatValue(sourceParam string, dest interface{}, bitSize i
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
 
@@ -1018,6 +1096,7 @@ func (b *ValueBinder) float(sourceParam string, value string, dest interface{}, 
 	case *float32:
 		*d = float32(n)
 	}
+
 	return b
 }
 
@@ -1031,8 +1110,10 @@ func (b *ValueBinder) floatsValue(sourceParam string, dest interface{}, valueMus
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	return b.floats(sourceParam, values, dest)
 }
 
@@ -1042,25 +1123,32 @@ func (b *ValueBinder) floats(sourceParam string, values []string, dest interface
 		tmp := make([]float64, len(values))
 		for i, v := range values {
 			b.float(sourceParam, v, &tmp[i], 64)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
+
 	case *[]float32:
 		tmp := make([]float32, len(values))
+
 		for i, v := range values {
 			b.float(sourceParam, v, &tmp[i], 32)
+
 			if b.failFast && b.errors != nil {
 				return b
 			}
 		}
+
 		if b.errors == nil {
 			*d = tmp
 		}
 	}
+
 	return b
 }
 
@@ -1104,14 +1192,19 @@ func (b *ValueBinder) time(sourceParam string, dest *time.Time, layout string, v
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{value}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	t, err := time.Parse(layout, value)
+
 	if err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{value}, "failed to bind field value to Time", err))
 		return b
 	}
+
 	*dest = t
+
 	return b
 }
 
@@ -1135,24 +1228,31 @@ func (b *ValueBinder) times(sourceParam string, dest *[]time.Time, layout string
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
 
 	tmp := make([]time.Time, len(values))
+
 	for i, v := range values {
 		t, err := time.Parse(layout, v)
 		if err != nil {
 			b.setError(b.ErrorFunc(sourceParam, []string{v}, "failed to bind field value to Time", err))
+
 			if b.failFast {
 				return b
 			}
+
 			continue
 		}
+
 		tmp[i] = t
 	}
+
 	if b.errors == nil {
 		*dest = tmp
 	}
+
 	return b
 }
 
@@ -1176,14 +1276,18 @@ func (b *ValueBinder) duration(sourceParam string, dest *time.Duration, valueMus
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{value}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	t, err := time.ParseDuration(value)
 	if err != nil {
 		b.setError(b.ErrorFunc(sourceParam, []string{value}, "failed to bind field value to Duration", err))
 		return b
 	}
+
 	*dest = t
+
 	return b
 }
 
@@ -1207,27 +1311,35 @@ func (b *ValueBinder) durationsValue(sourceParam string, dest *[]time.Duration, 
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{}, "required field value is empty", nil))
 		}
+
 		return b
 	}
+
 	return b.durations(sourceParam, values, dest)
 }
 
 func (b *ValueBinder) durations(sourceParam string, values []string, dest *[]time.Duration) *ValueBinder {
 	tmp := make([]time.Duration, len(values))
+
 	for i, v := range values {
 		t, err := time.ParseDuration(v)
 		if err != nil {
 			b.setError(b.ErrorFunc(sourceParam, []string{v}, "failed to bind field value to Duration", err))
+
 			if b.failFast {
 				return b
 			}
+
 			continue
 		}
+
 		tmp[i] = t
 	}
+
 	if b.errors == nil {
 		*dest = tmp
 	}
+
 	return b
 }
 
@@ -1310,6 +1422,7 @@ func (b *ValueBinder) unixTime(sourceParam string, dest *time.Time, valueMustExi
 		if valueMustExist {
 			b.setError(b.ErrorFunc(sourceParam, []string{value}, "required field value is empty", nil))
 		}
+
 		return b
 	}
 
@@ -1327,5 +1440,6 @@ func (b *ValueBinder) unixTime(sourceParam string, dest *time.Time, valueMustExi
 	case time.Nanosecond:
 		*dest = time.Unix(0, n)
 	}
+
 	return b
 }

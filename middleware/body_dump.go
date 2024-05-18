@@ -48,6 +48,7 @@ func (config BodyDumpConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Handler == nil {
 		return nil, errors.New("echo body-dump middleware requires a handler function")
 	}
+
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
@@ -63,6 +64,7 @@ func (config BodyDumpConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if c.Request().Body != nil {
 				reqBody, _ = io.ReadAll(c.Request().Body)
 			}
+
 			c.Request().Body = io.NopCloser(bytes.NewBuffer(reqBody)) // Reset
 
 			// Response

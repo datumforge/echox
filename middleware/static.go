@@ -140,6 +140,7 @@ var DefaultStaticConfig = StaticConfig{
 func Static(root string) echox.MiddlewareFunc {
 	c := DefaultStaticConfig
 	c.Root = root
+
 	return StaticWithConfig(c)
 }
 
@@ -154,12 +155,15 @@ func (config StaticConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Root == "" {
 		config.Root = "." // For security we want to restrict to CWD.
 	}
+
 	if config.Skipper == nil {
 		config.Skipper = DefaultStaticConfig.Skipper
 	}
+
 	if config.Index == "" {
 		config.Index = DefaultStaticConfig.Index
 	}
+
 	if config.DirectoryListTemplate == "" {
 		config.DirectoryListTemplate = directoryListHTMLTemplate
 	}
@@ -177,21 +181,25 @@ func (config StaticConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 			p := c.Request().URL.Path
 			pathUnescape := true
+
 			if strings.HasSuffix(c.Path(), "*") { // When serving from a group, e.g. `/static*`.
 				p = c.PathParam("*")
 				pathUnescape = !config.DisablePathUnescaping // because router could already do PathUnescape
 			}
+
 			if pathUnescape {
 				p, err = url.PathUnescape(p)
 				if err != nil {
 					return err
 				}
 			}
+
 			name := path.Join(config.Root, path.Clean("/"+p)) // "/"+ for security
 
 			if config.IgnoreBase {
 				routePath := path.Base(strings.TrimRight(c.Path(), "/*"))
 				baseURLPath := path.Base(p)
+
 				if baseURLPath == routePath {
 					i := strings.LastIndex(name, routePath)
 					name = name[:i] + strings.Replace(name[i:], routePath, "", 1)
@@ -263,19 +271,23 @@ func serveFile(c echox.Context, file fs.File, info os.FileInfo) error {
 	if !ok {
 		return errors.New("file does not implement io.ReadSeeker")
 	}
+
 	http.ServeContent(c.Response(), c.Request(), info.Name(), info.ModTime(), ff)
+
 	return nil
 }
 
 func listDir(t *template.Template, name string, filesystem fs.FS, dir fs.File, res *echox.Response) error {
 	// Create directory index
 	res.Header().Set(echox.HeaderContentType, echox.MIMETextHTMLCharsetUTF8)
+
 	data := struct {
 		Name  string
 		Files []interface{}
 	}{
 		Name: name,
 	}
+
 	err := fs.WalkDir(filesystem, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -285,6 +297,7 @@ func listDir(t *template.Template, name string, filesystem fs.FS, dir fs.File, r
 		if infoErr != nil {
 			return fmt.Errorf("static middleware list dir error when getting file info: %w", err)
 		}
+
 		data.Files = append(data.Files, struct {
 			Name string
 			Dir  bool

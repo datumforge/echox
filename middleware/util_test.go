@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testLogger struct {
@@ -142,6 +143,7 @@ func TestRandomStringBias(t *testing.T) {
 	for i := 0; i < loop; i++ {
 		s := randomString(slen)
 		require.Equal(t, slen, len(s))
+
 		for _, b := range s {
 			counts[b]++
 			count++

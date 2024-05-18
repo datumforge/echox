@@ -5,8 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestRequestID(t *testing.T) {
@@ -32,6 +33,7 @@ func TestMustRequestIDWithConfig_skipper(t *testing.T) {
 	})
 
 	generatorCalled := false
+
 	e.Use(RequestIDWithConfig(RequestIDConfig{
 		Skipper: func(c echox.Context) bool {
 			return true
@@ -105,6 +107,7 @@ func TestRequestIDWithConfig(t *testing.T) {
 
 	rid, err := RequestIDConfig{}.ToMiddleware()
 	assert.NoError(t, err)
+
 	h := rid(handler)
 	h(c)
 	assert.Len(t, rec.Header().Get(echox.HeaderXRequestID), 32)
@@ -132,6 +135,7 @@ func TestRequestID_IDNotAltered(t *testing.T) {
 	rid := RequestIDWithConfig(RequestIDConfig{})
 	h := rid(handler)
 	_ = h(c)
+
 	assert.Equal(t, rec.Header().Get(echox.HeaderXRequestID), "<sample-request-id>")
 }
 

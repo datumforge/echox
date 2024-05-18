@@ -49,6 +49,7 @@ func (config DecompressConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.GzipDecompressPool == nil {
 		config.GzipDecompressPool = &DefaultGzipDecompressPool{}
 	}
@@ -67,18 +68,21 @@ func (config DecompressConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 
 			i := pool.Get()
 			gr, ok := i.(*gzip.Reader)
+
 			if !ok || gr == nil {
 				return echox.NewHTTPError(http.StatusInternalServerError, i.(error).Error())
 			}
+
 			defer pool.Put(gr)
 
 			b := c.Request().Body
 			defer b.Close()
 
 			if err := gr.Reset(b); err != nil {
-				if err == io.EOF { //ignore if body is empty
+				if err == io.EOF { // ignore if body is empty
 					return next(c)
 				}
+
 				return err
 			}
 

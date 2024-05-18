@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func testKeyValidator(c echox.Context, key string, source ExtractorSource) (bool, error) {
@@ -33,6 +34,7 @@ func TestKeyAuth(t *testing.T) {
 	e := echox.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(echox.HeaderAuthorization, "Bearer valid-key")
+
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -233,7 +235,6 @@ func TestKeyAuthWithConfig(t *testing.T) {
 					}
 					return false, errors.New("invalid source")
 				}
-
 			},
 			expectHandlerCalled: true,
 		},
@@ -246,28 +247,34 @@ func TestKeyAuthWithConfig(t *testing.T) {
 				handlerCalled = true
 				return c.String(http.StatusOK, "test")
 			}
+
 			config := KeyAuthConfig{
 				Validator: testKeyValidator,
 			}
 			if tc.whenConfig != nil {
 				tc.whenConfig(&config)
 			}
+
 			middlewareChain := KeyAuthWithConfig(config)(handler)
 
 			e := echox.New()
+
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			if tc.givenRequestFunc != nil {
 				req = tc.givenRequestFunc()
 			}
+
 			if tc.givenRequest != nil {
 				tc.givenRequest(req)
 			}
+
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
 			err := middlewareChain(c)
 
 			assert.Equal(t, tc.expectHandlerCalled, handlerCalled)
+
 			if tc.expectError != "" {
 				assert.EqualError(t, err, tc.expectError)
 			} else {
@@ -346,6 +353,7 @@ func TestKeyAuth_errorHandlerSwallowsError(t *testing.T) {
 	handler := func(c echox.Context) error {
 		handlerCalled = true
 		authValue = c.Get("auth").(string)
+
 		return c.String(http.StatusOK, "test")
 	}
 	middlewareChain := KeyAuthWithConfig(KeyAuthConfig{

@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestCSRF_tokenExtractors(t *testing.T) {
@@ -159,6 +160,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 			e := echox.New()
 
 			q := make(url.Values)
+
 			for queryParam, values := range tc.givenQueryTokens {
 				for _, v := range values {
 					q.Add(queryParam, v)
@@ -166,6 +168,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 			}
 
 			f := make(url.Values)
+
 			for formKey, values := range tc.givenFormTokens {
 				for _, v := range values {
 					f.Add(formKey, v)
@@ -173,6 +176,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 			}
 
 			var req *http.Request
+
 			switch tc.givenMethod {
 			case http.MethodGet:
 				req = httptest.NewRequest(http.MethodGet, "/?"+q.Encode(), nil)
@@ -198,6 +202,7 @@ func TestCSRF_tokenExtractors(t *testing.T) {
 				TokenLookup: tc.whenTokenLookup,
 				CookieName:  tc.whenCookieName,
 			}
+
 			csrf, err := config.ToMiddleware()
 			if tc.expectToMiddlewareError != "" {
 				assert.EqualError(t, err, tc.expectToMiddlewareError)
@@ -233,7 +238,6 @@ func TestCSRF(t *testing.T) {
 	// Generate CSRF token
 	h(c)
 	assert.Contains(t, rec.Header().Get(echox.HeaderSetCookie), "_csrf")
-
 }
 
 func TestMustCSRFWithConfig(t *testing.T) {
@@ -269,6 +273,7 @@ func TestMustCSRFWithConfig(t *testing.T) {
 	token := randomString(16)
 	req.Header.Set(echox.HeaderCookie, "_csrf="+token)
 	req.Header.Set(echox.HeaderXCSRFToken, token)
+
 	if assert.NoError(t, h(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
@@ -387,6 +392,7 @@ func TestCSRFConfig_skipper(t *testing.T) {
 
 			r := h(c)
 			assert.NoError(t, r)
+
 			cookie := rec.Header()["Set-Cookie"]
 			assert.Len(t, cookie, tc.expectCookies)
 		})

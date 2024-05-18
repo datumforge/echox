@@ -36,14 +36,17 @@ func (config ContextTimeoutConfig) ToMiddleware() (echox.MiddlewareFunc, error) 
 	if config.Timeout == 0 {
 		return nil, errors.New("timeout must be set")
 	}
+
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.ErrorHandler == nil {
 		config.ErrorHandler = func(c echox.Context, err error) error {
 			if err != nil && errors.Is(err, context.DeadlineExceeded) {
 				return echox.ErrServiceUnavailable.WithInternal(err)
 			}
+
 			return err
 		}
 	}
@@ -62,6 +65,7 @@ func (config ContextTimeoutConfig) ToMiddleware() (echox.MiddlewareFunc, error) 
 			if err := next(c); err != nil {
 				return config.ErrorHandler(c, err)
 			}
+
 			return nil
 		}
 	}, nil

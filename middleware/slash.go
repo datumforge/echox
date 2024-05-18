@@ -37,6 +37,7 @@ func (config AddTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, error
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.RedirectCode != 0 && (config.RedirectCode < http.StatusMultipleChoices || config.RedirectCode > http.StatusPermanentRedirect) {
 		// this is same check as `echox.context.Redirect()` does, but we can check this before even serving the request.
 		return nil, errors.New("invalid redirect code for add trailing slash middleware")
@@ -52,8 +53,10 @@ func (config AddTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, error
 			url := req.URL
 			path := url.Path
 			qs := c.QueryString()
+
 			if !strings.HasSuffix(path, "/") {
 				path += "/"
+
 				uri := path
 				if qs != "" {
 					uri += "?" + qs
@@ -68,6 +71,7 @@ func (config AddTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, error
 				req.RequestURI = uri
 				url.Path = path
 			}
+
 			return next(c)
 		}
 	}, nil
@@ -101,6 +105,7 @@ func (config RemoveTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, er
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	if config.RedirectCode != 0 && (config.RedirectCode < http.StatusMultipleChoices || config.RedirectCode > http.StatusPermanentRedirect) {
 		// this is same check as `echox.context.Redirect()` does, but we can check this before even serving the request.
 		return nil, errors.New("invalid redirect code for remove trailing slash middleware")
@@ -116,9 +121,11 @@ func (config RemoveTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, er
 			url := req.URL
 			path := url.Path
 			qs := c.QueryString()
+
 			l := len(path) - 1
 			if l > 0 && strings.HasSuffix(path, "/") {
 				path = path[:l]
+
 				uri := path
 				if qs != "" {
 					uri += "?" + qs
@@ -133,6 +140,7 @@ func (config RemoveTrailingSlashConfig) ToMiddleware() (echox.MiddlewareFunc, er
 				req.RequestURI = uri
 				url.Path = path
 			}
+
 			return next(c)
 		}
 	}, nil
@@ -144,5 +152,6 @@ func sanitizeURI(uri string) string {
 	if len(uri) > 1 && (uri[0] == '\\' || uri[0] == '/') && (uri[1] == '\\' || uri[1] == '/') {
 		uri = "/" + strings.TrimLeft(uri, `/\`)
 	}
+
 	return uri
 }

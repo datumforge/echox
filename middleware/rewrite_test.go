@@ -8,8 +8,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestRewriteAfterRouting(t *testing.T) {

@@ -6,8 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 func TestRecover(t *testing.T) {
@@ -59,6 +60,7 @@ func TestRecoverErrAbortHandler(t *testing.T) {
 	h := Recover()(func(c echox.Context) error {
 		panic(http.ErrAbortHandler)
 	})
+
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -119,6 +121,7 @@ func TestRecoverWithConfig(t *testing.T) {
 				if tc.givenNoPanic {
 					return nil
 				}
+
 				panic("testPANIC")
 			})
 
@@ -131,6 +134,7 @@ func TestRecoverWithConfig(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+
 			assert.Equal(t, http.StatusOK, rec.Code) // status is still untouched. err is returned from middleware chain
 		})
 	}

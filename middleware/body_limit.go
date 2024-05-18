@@ -44,6 +44,7 @@ func (config BodyLimitConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 	if config.Skipper == nil {
 		config.Skipper = DefaultSkipper
 	}
+
 	pool := sync.Pool{
 		New: func() interface{} {
 			return &limitedReader{BodyLimitConfig: config}
@@ -55,6 +56,7 @@ func (config BodyLimitConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			if config.Skipper(c) {
 				return next(c)
 			}
+
 			req := c.Request()
 
 			// Based on content length
@@ -65,6 +67,7 @@ func (config BodyLimitConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 			// Based on content read
 			r := pool.Get().(*limitedReader)
 			r.Reset(req.Body)
+
 			defer pool.Put(r)
 			req.Body = r
 
@@ -76,9 +79,11 @@ func (config BodyLimitConfig) ToMiddleware() (echox.MiddlewareFunc, error) {
 func (r *limitedReader) Read(b []byte) (n int, err error) {
 	n, err = r.reader.Read(b)
 	r.read += int64(n)
+
 	if r.read > r.LimitBytes {
 		return n, echox.ErrStatusRequestEntityTooLarge
 	}
+
 	return
 }
 

@@ -5,8 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/datumforge/echox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/datumforge/echox"
 )
 
 type middlewareGenerator func() echox.MiddlewareFunc
@@ -268,9 +269,11 @@ func redirectTest(fn middlewareGenerator, host string, header http.Header) *http
 	}
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Host = host
+
 	if header != nil {
 		req.Header = header
 	}
+
 	res := httptest.NewRecorder()
 	c := e.NewContext(req, res)
 

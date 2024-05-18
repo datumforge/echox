@@ -64,7 +64,7 @@ XFF:  "x"                   "x, a"                  "x, a, b"
 ```
 
 In this case, use **first _untrustable_ IP reading from right**. Never use first one reading from left, as it is
-configurable by client. Here "trustable" means "you are sure the IP address belongs to your infrastructre".
+configurable by client. Here "trustable" means "you are sure the IP address belongs to your infrastructure".
 In above example, if `b` and `c` are trustable, the IP address of the client is `a` for both cases, never be `x`.
 
 In Echo, use `ExtractIPFromXFFHeader(...TrustOption)`.
@@ -173,6 +173,7 @@ func newIPChecker(configs []TrustOption) *ipChecker {
 	for _, configure := range configs {
 		configure(checker)
 	}
+
 	return checker
 }
 
@@ -183,6 +184,7 @@ func isPrivateIPRange(ip net.IP) bool {
 			ip4[0] == 172 && ip4[1]&0xf0 == 16 ||
 			ip4[0] == 192 && ip4[1] == 168
 	}
+
 	return len(ip) == net.IPv6len && ip[0]&0xfe == 0xfc
 }
 
@@ -190,17 +192,21 @@ func (c *ipChecker) trust(ip net.IP) bool {
 	if c.trustLoopback && ip.IsLoopback() {
 		return true
 	}
+
 	if c.trustLinkLocal && ip.IsLinkLocalUnicast() {
 		return true
 	}
+
 	if c.trustPrivateNet && isPrivateIPRange(ip) {
 		return true
 	}
+
 	for _, trustedRange := range c.trustExtraRanges {
 		if trustedRange.Contains(ip) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -224,15 +230,18 @@ func extractIP(req *http.Request) string {
 // Use this if you put proxy which uses this header.
 func ExtractIPFromRealIPHeader(options ...TrustOption) IPExtractor {
 	checker := newIPChecker(options)
+
 	return func(req *http.Request) string {
 		realIP := req.Header.Get(HeaderXRealIP)
 		if realIP != "" {
 			realIP = strings.TrimPrefix(realIP, "[")
 			realIP = strings.TrimSuffix(realIP, "]")
+
 			if ip := net.ParseIP(realIP); ip != nil && checker.trust(ip) {
 				return realIP
 			}
 		}
+
 		return extractIP(req)
 	}
 }
@@ -242,22 +251,27 @@ func ExtractIPFromRealIPHeader(options ...TrustOption) IPExtractor {
 // This returns nearest untrustable IP. If all IPs are trustable, returns furthest one (i.e.: XFF[0]).
 func ExtractIPFromXFFHeader(options ...TrustOption) IPExtractor {
 	checker := newIPChecker(options)
+
 	return func(req *http.Request) string {
 		directIP := extractIP(req)
 		xffs := req.Header[HeaderXForwardedFor]
+
 		if len(xffs) == 0 {
 			return directIP
 		}
+
 		ips := append(strings.Split(strings.Join(xffs, ","), ","), directIP)
 		for i := len(ips) - 1; i >= 0; i-- {
 			ips[i] = strings.TrimSpace(ips[i])
 			ips[i] = strings.TrimPrefix(ips[i], "[")
 			ips[i] = strings.TrimSuffix(ips[i], "]")
+
 			ip := net.ParseIP(ips[i])
 			if ip == nil {
 				// Unable to parse IP; cannot trust entire records
 				return directIP
 			}
+
 			if !checker.trust(ip) {
 				return ip.String()
 			}
