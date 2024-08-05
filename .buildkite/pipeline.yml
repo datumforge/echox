@@ -32,7 +32,7 @@ steps:
     if: build.pull_request.id != null
     depends_on: ["gosec"]
     plugins:
-      - artifacts#v1.9.3:
+      - artifacts#v1.9.4:
           download: "results.txt"    
       - docker#v5.11.0:
             image: "sonarsource/sonar-scanner-cli:5"
@@ -45,7 +45,7 @@ steps:
     if: build.branch == "main"
     depends_on: ["gosec"]
     plugins:
-      - artifacts#v1.9.3:
+      - artifacts#v1.9.4:
           download: results.txt
       - docker#v5.11.0:
             image: "sonarsource/sonar-scanner-cli:5"
